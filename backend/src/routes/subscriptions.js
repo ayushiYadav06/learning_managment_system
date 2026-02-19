@@ -1,0 +1,19 @@
+import { Router } from 'express';
+import * as subscriptionController from '../controllers/subscriptionController.js';
+import * as subscribedModuleController from '../controllers/subscribedModuleController.js';
+import * as subscriptionLogController from '../controllers/subscriptionLogController.js';
+
+const router = Router();
+
+router.get('/', subscriptionController.list);
+router.post('/', subscriptionController.create);
+router.get('/:id', subscriptionController.getById);
+router.patch('/:id', subscriptionController.update);
+router.delete('/:id', subscriptionController.remove);
+
+router.get('/:subscriptionId/modules', subscribedModuleController.getAssignedModules);
+router.put('/:subscriptionId/modules', subscribedModuleController.assignModules);
+
+router.get('/:subscriptionId/logs', subscriptionLogController.getBySubscriptionId);
+
+export default router;
