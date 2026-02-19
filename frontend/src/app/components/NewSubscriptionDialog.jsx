@@ -32,7 +32,7 @@ export function NewSubscriptionDialog({ open, onOpenChange, onSubmit }) {
         <DialogHeader>
           <DialogTitle>Create New Subscription</DialogTitle>
           <DialogDescription>
-            Add a new subscription account. Password will be auto-generated.
+            Add a new subscription account. Password is auto-generated at creation and shown after you create.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
@@ -95,8 +95,8 @@ export function NewSubscriptionDialog({ open, onOpenChange, onSubmit }) {
                 required
               />
             </div>
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-700">
-              <strong>Note:</strong> Password will be auto-generated and displayed after creation.
+            <div className="bg-slate-100 border border-slate-200 rounded-lg p-3 text-sm text-slate-700">
+              <strong>Note:</strong> Password is auto-generated when you create the subscription and shown in the success message and in the table.
             </div>
           </div>
           <DialogFooter>

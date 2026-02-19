@@ -1,7 +1,6 @@
 import React from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router';
-import { Button } from '../components/ui/button';
-import { GraduationCap, Users, Package, DollarSign, LogOut } from 'lucide-react';
+import { GraduationCap, Users, Package, DollarSign, History, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAppDispatch } from '../hooks';
 import { logout } from '../store/slices/authSlice';
@@ -20,52 +19,63 @@ export function Dashboard() {
     { to: '/dashboard/subscriptions', icon: Users, label: 'Subscriptions' },
     { to: '/dashboard/modules', icon: Package, label: 'Modules' },
     { to: '/dashboard/billing', icon: DollarSign, label: 'Billing' },
+    { to: '/dashboard/subscription-log', icon: History, label: 'Subscription Log' },
+    { to: '/dashboard/billing-subscription-log', icon: History, label: 'Billing Subscription Log' },
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="flex items-center justify-between px-6 py-4">
+    <div className="min-h-screen bg-[#f8fafc] flex flex-col">
+      {/* Navy header */}
+      <header className="bg-[#0f172a] text-white sticky top-0 z-20 shadow-sm">
+        <div className="flex items-center justify-between px-6 h-16">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center">
-              <GraduationCap className="w-6 h-6 text-white" />
+            <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center">
+              <GraduationCap className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="font-semibold text-gray-900">LMS Admin Portal</h1>
-              <p className="text-sm text-gray-500">Billing & Subscription Management</p>
+              <h1 className="font-semibold text-white tracking-tight">LMS Admin Portal</h1>
+              <p className="text-xs text-slate-400">Billing & Subscription Management</p>
             </div>
           </div>
-          <Button variant="outline" onClick={handleLogout}>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-lg bg-white/15 text-white border border-white/40 font-medium text-sm hover:bg-white/25 hover:border-white/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f172a] transition-colors"
+          >
             <LogOut className="w-4 h-4 mr-2" />
             Logout
-          </Button>
+          </button>
         </div>
       </header>
 
-      <div className="flex">
-        <aside className="w-64 bg-white border-r border-gray-200 min-h-[calc(100vh-73px)] p-4">
-          <nav className="space-y-2">
+      <div className="flex flex-1">
+        {/* Navy sidebar */}
+        <aside className="w-64 bg-[#0f172a] border-r border-white/10 min-h-[calc(100vh-4rem)] flex-shrink-0">
+          <nav className="p-3 space-y-1">
             {navItems.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                  `flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
                     isActive
-                      ? 'bg-indigo-50 text-indigo-600'
-                      : 'text-gray-700 hover:bg-gray-50'
+                      ? 'bg-white/10 text-white'
+                      : 'text-slate-300 hover:bg-white/5 hover:text-white'
                   }`
                 }
               >
-                <item.icon className="w-5 h-5" />
+                <item.icon className="w-5 h-5 shrink-0" />
                 <span>{item.label}</span>
               </NavLink>
             ))}
           </nav>
         </aside>
 
-        <main className="flex-1 p-8">
-          <Outlet />
+        {/* Content area */}
+        <main className="flex-1 overflow-auto bg-slate-50/50">
+          <div className="max-w-6xl mx-auto p-8">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

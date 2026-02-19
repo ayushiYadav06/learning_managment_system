@@ -1,4 +1,8 @@
 import { Subscription } from '../models/Subscription.js';
+import { SubscribedModule } from '../models/SubscribedModule.js';
+import { BillingSubscription } from '../models/BillingSubscription.js';
+import { Module } from '../models/Module.js';
+import { BillingPlan } from '../models/BillingPlan.js';
 import { toResponse, toResponseList } from '../utils/serialize.js';
 import mongoose from 'mongoose';
 
@@ -8,8 +12,15 @@ export async function list(req, res) {
   try {
     const { type } = req.query;
     const filter = type && SUBSCRIPTION_TYPES.includes(type) ? { type } : {};
-    const list = await Subscription.find(filter).sort({ createdAt: -1 }).lean();
-    return res.json(toResponseList(list, { exclude: ['password'] }));
+    const list = await Subscription.find(filter)
+      .sort({ createdAt: -1 })
+      .lean();
+    const out = list.map((doc) => {
+      const item = toResponse(doc);
+      item.password = doc.password;
+      return item;
+    });
+    return res.json(out);
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }
@@ -33,7 +44,7 @@ export async function create(req, res) {
       username,
       password,
     });
-    const out = toResponse(doc, { exclude: ['password'] });
+    const out = toResponse(doc);
     return res.status(201).json(out);
   } catch (err) {
     if (err.code === 11000) {
@@ -52,6 +63,57 @@ export async function getById(req, res) {
     const doc = await Subscription.findById(id).lean();
     if (!doc) return res.status(404).json({ success: false, message: 'Subscription not found' });
     return res.json(toResponse(doc, { exclude: ['password'] }));
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+}
+
+/**
+ * GET /api/subscriptions/:id/details
+ * Returns subscription with password, assigned modules, and billing plans this subscription is in.
+ */
+export async function getDetails(req, res) {
+  try {
+    const { id } = req.params;
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid ID' });
+    }
+    const subId = new mongoose.Types.ObjectId(id);
+    const subscription = await Subscription.findById(subId).lean();
+    if (!subscription) {
+      return res.status(404).json({ success: false, message: 'Subscription not found' });
+    }
+
+    const [subscribedModule, billingAssignments] = await Promise.all([
+      SubscribedModule.findOne({ subscriptionId: subId }).lean(),
+      BillingSubscription.find({ subscriptionIds: subId }).lean(),
+    ]);
+
+    const moduleIds = subscribedModule?.moduleIds || [];
+    const planIds = (billingAssignments || []).map((b) => b.planId);
+
+    const [modules, plans] = await Promise.all([
+      moduleIds.length > 0 ? Module.find({ _id: { $in: moduleIds } }).lean() : [],
+      planIds.length > 0 ? BillingPlan.find({ _id: { $in: planIds } }).lean() : [],
+    ]);
+
+    const moduleMap = Object.fromEntries(modules.map((m) => [m._id.toString(), m]));
+    const orderedModules = moduleIds.map((mid) => moduleMap[mid?.toString()]).filter(Boolean);
+
+    return res.json({
+      subscription: toResponse(subscription),
+      assignedModules: orderedModules.map((m) => ({
+        id: m._id.toString(),
+        name: m.name,
+        description: m.description,
+      })),
+      billingPlans: plans.map((p) => ({
+        id: p._id.toString(),
+        name: p.name,
+        cost: p.cost,
+        addons: p.addons || [],
+      })),
+    });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }

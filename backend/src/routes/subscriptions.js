@@ -7,6 +7,7 @@ const router = Router();
 
 router.get('/', subscriptionController.list);
 router.post('/', subscriptionController.create);
+router.get('/:id/details', subscriptionController.getDetails);
 router.get('/:id', subscriptionController.getById);
 router.patch('/:id', subscriptionController.update);
 router.delete('/:id', subscriptionController.remove);

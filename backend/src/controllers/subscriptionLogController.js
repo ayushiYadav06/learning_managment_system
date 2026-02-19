@@ -1,6 +1,48 @@
 import { SubscriptionLog } from '../models/SubscriptionLog.js';
-import { toResponseList } from '../utils/serialize.js';
 import mongoose from 'mongoose';
+
+/**
+ * GET /api/subscription-logs
+ * List all subscription logs with subscription name and module names.
+ */
+export async function listAll(req, res) {
+  try {
+    const list = await SubscriptionLog.aggregate([
+      { $sort: { createdAt: -1 } },
+      {
+        $lookup: {
+          from: 'subscriptions',
+          localField: 'subscriptionId',
+          foreignField: '_id',
+          as: 'subscription',
+        },
+      },
+      { $unwind: { path: '$subscription', preserveNullAndEmptyArrays: true } },
+      {
+        $lookup: {
+          from: 'modules',
+          localField: 'assignedModules',
+          foreignField: '_id',
+          as: 'moduleDocs',
+        },
+      },
+      {
+        $project: {
+          id: { $toString: '$_id' },
+          date: '$createdAt',
+          subscriptionId: { $toString: '$subscriptionId' },
+          subscriptionName: '$subscription.fullName',
+          assignedModuleIds: { $map: { input: '$assignedModules', as: 'mid', in: { $toString: '$$mid' } } },
+          assignedModuleNames: '$moduleDocs.name',
+          action: 1,
+        },
+      },
+    ]);
+    return res.json(list);
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+}
 
 /**
  * GET /api/subscriptions/:subscriptionId/logs

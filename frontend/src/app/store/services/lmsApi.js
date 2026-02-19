@@ -28,7 +28,7 @@ const baseQueryWithAuthHandling = async (args, api, extraOptions) => {
 export const lmsApi = createApi({
   reducerPath: 'lmsApi',
   baseQuery: baseQueryWithAuthHandling,
-  tagTypes: ['Subscriptions', 'Modules', 'BillingPlans', 'SubscriptionModules', 'PlanSubscriptions'],
+  tagTypes: ['Subscriptions', 'Modules', 'BillingPlans', 'SubscriptionModules', 'PlanSubscriptions', 'SubscriptionLogs', 'BillingSubscriptionLogs'],
   endpoints: (builder) => ({
     getSubscriptions: builder.query({
       query: (type) => (type ? `/api/subscriptions?type=${encodeURIComponent(type)}` : '/api/subscriptions'),
@@ -52,6 +52,10 @@ export const lmsApi = createApi({
       query: (id) => ({ url: `/api/subscriptions/${id}`, method: 'DELETE' }),
       invalidatesTags: (_result, _err, id) => [{ type: 'Subscriptions', id }, { type: 'Subscriptions', id: 'LIST' }],
     }),
+    getSubscriptionDetails: builder.query({
+      query: (id) => `/api/subscriptions/${id}/details`,
+      providesTags: (_result, _err, id) => [{ type: 'Subscriptions', id }],
+    }),
     getAssignedModules: builder.query({
       query: (subscriptionId) => `/api/subscriptions/${subscriptionId}/modules`,
       providesTags: (_result, _err, subscriptionId) => [{ type: 'SubscriptionModules', id: subscriptionId }],
@@ -65,10 +69,16 @@ export const lmsApi = createApi({
       invalidatesTags: (_result, _err, { subscriptionId }) => [
         { type: 'SubscriptionModules', id: subscriptionId },
         { type: 'Subscriptions', id: 'LIST' },
+        { type: 'SubscriptionLogs', id: 'LIST' },
       ],
     }),
     getSubscriptionLogs: builder.query({
       query: (subscriptionId) => `/api/subscriptions/${subscriptionId}/logs`,
+    }),
+    getAllSubscriptionLogs: builder.query({
+      query: () => '/api/subscription-logs',
+      providesTags: (result) =>
+        result ? [{ type: 'SubscriptionLogs', id: 'LIST' }] : [{ type: 'SubscriptionLogs', id: 'LIST' }],
     }),
     getModules: builder.query({
       query: () => '/api/modules',
@@ -124,10 +134,16 @@ export const lmsApi = createApi({
       invalidatesTags: (_result, _err, { planId }) => [
         { type: 'PlanSubscriptions', id: planId },
         { type: 'BillingPlans', id: 'LIST' },
+        { type: 'BillingSubscriptionLogs', id: 'LIST' },
       ],
     }),
     getBillingSubscriptionLogs: builder.query({
       query: (planId) => `/api/billing-plans/${planId}/logs`,
+    }),
+    getAllBillingSubscriptionLogs: builder.query({
+      query: () => '/api/billing-subscription-logs',
+      providesTags: (result) =>
+        result ? [{ type: 'BillingSubscriptionLogs', id: 'LIST' }] : [{ type: 'BillingSubscriptionLogs', id: 'LIST' }],
     }),
   }),
 });
@@ -137,9 +153,11 @@ export const {
   useCreateSubscriptionMutation,
   useUpdateSubscriptionMutation,
   useDeleteSubscriptionMutation,
+  useGetSubscriptionDetailsQuery,
   useGetAssignedModulesQuery,
   useAssignModulesMutation,
   useGetSubscriptionLogsQuery,
+  useGetAllSubscriptionLogsQuery,
   useGetModulesQuery,
   useCreateModuleMutation,
   useUpdateModuleMutation,
@@ -151,4 +169,5 @@ export const {
   useGetAssignedSubscriptionsQuery,
   useAssignSubscriptionsToPlanMutation,
   useGetBillingSubscriptionLogsQuery,
+  useGetAllBillingSubscriptionLogsQuery,
 } = lmsApi;
