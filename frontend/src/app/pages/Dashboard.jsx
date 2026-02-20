@@ -1,6 +1,6 @@
-import React from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router';
-import { GraduationCap, Users, Package, DollarSign, History, LogOut } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router';
+import { GraduationCap, Users, Package, DollarSign, History, LogOut, ChevronDown, ChevronRight, Boxes } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAppDispatch } from '../hooks';
 import { logout } from '../store/slices/authSlice';
@@ -8,6 +8,13 @@ import { logout } from '../store/slices/authSlice';
 export function Dashboard() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
+  const location = useLocation();
+  const isMasterActive = location.pathname.startsWith('/dashboard/master');
+  const [masterOpen, setMasterOpen] = useState(isMasterActive);
+
+  useEffect(() => {
+    if (isMasterActive) setMasterOpen(true);
+  }, [isMasterActive]);
 
   const handleLogout = () => {
     dispatch(logout());
@@ -16,11 +23,14 @@ export function Dashboard() {
   };
 
   const navItems = [
-    { to: '/dashboard/master', icon: Package, label: 'Master' },
+    { to: '/dashboard/billing', icon: DollarSign, label: 'Plans' },
     { to: '/dashboard/subscriptions', icon: Users, label: 'Subscriptions' },
-    { to: '/dashboard/billing', icon: DollarSign, label: 'Billing' },
-    { to: '/dashboard/subscription-log', icon: History, label: 'Subscription Log' },
-    { to: '/dashboard/billing-subscription-log', icon: History, label: 'Billing Subscription Log' },
+    { to: '/dashboard/subscription-log', icon: History, label: 'Subscriptions Logs' },
+    { to: '/dashboard/plan-subscription-logs', icon: History, label: 'Plan Subscription Logs' },
+  ];
+
+  const masterSubItems = [
+    { to: '/dashboard/master', icon: Boxes, label: 'Modules' },
   ];
 
   return (
@@ -52,6 +62,44 @@ export function Dashboard() {
         {/* Navy sidebar */}
         <aside className="w-64 bg-[#0f172a] border-r border-white/10 min-h-[calc(100vh-4rem)] flex-shrink-0">
           <nav className="p-3 space-y-1">
+            {/* Master section with sub-tabs */}
+            <div className="space-y-0.5">
+              <button
+                type="button"
+                onClick={() => setMasterOpen((o) => !o)}
+                className={`flex items-center gap-3 w-full px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                  isMasterActive ? 'bg-white/10 text-white' : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                }`}
+              >
+                <Package className="w-5 h-5 shrink-0" />
+                <span className="flex-1 text-left">Master</span>
+                {masterOpen ? (
+                  <ChevronDown className="w-4 h-4 shrink-0" />
+                ) : (
+                  <ChevronRight className="w-4 h-4 shrink-0" />
+                )}
+              </button>
+              {masterOpen && (
+                <div className="pl-4 ml-2 border-l border-white/10 space-y-0.5">
+                  {masterSubItems.map((item) => (
+                    <NavLink
+                      key={item.to}
+                      to={item.to}
+                      className={({ isActive }) =>
+                        `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                          isActive
+                            ? 'bg-white/10 text-white'
+                            : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                        }`
+                      }
+                    >
+                      <item.icon className="w-4 h-4 shrink-0" />
+                      <span>{item.label}</span>
+                    </NavLink>
+                  ))}
+                </div>
+              )}
+            </div>
             {navItems.map((item) => (
               <NavLink
                 key={item.to}

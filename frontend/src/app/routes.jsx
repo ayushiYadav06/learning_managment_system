@@ -47,7 +47,7 @@ export const router = createBrowserRouter([
         element: <SubscriptionLogs />,
       },
       {
-        path: 'billing-subscription-log',
+        path: 'plan-subscription-logs',
         element: <BillingSubscriptionLogs />,
       },
     ],

@@ -28,7 +28,7 @@ const baseQueryWithAuthHandling = async (args, api, extraOptions) => {
 export const lmsApi = createApi({
   reducerPath: 'lmsApi',
   baseQuery: baseQueryWithAuthHandling,
-  tagTypes: ['Subscriptions', 'Modules', 'BillingPlans', 'SubscriptionModules', 'PlanSubscriptions', 'SubscriptionLogs', 'BillingSubscriptionLogs', 'EmailConfig'],
+  tagTypes: ['Subscriptions', 'Modules', 'BillingPlans', 'SubscriptionModules', 'SubscriptionPlanAssignments', 'SubscriptionLogs', 'BillingSubscriptionLogs', 'EmailConfig'],
   endpoints: (builder) => ({
     getSubscriptions: builder.query({
       query: (type) => (type ? `/api/subscriptions?type=${encodeURIComponent(type)}` : '/api/subscriptions'),
@@ -70,6 +70,29 @@ export const lmsApi = createApi({
         { type: 'SubscriptionModules', id: subscriptionId },
         { type: 'Subscriptions', id: 'LIST' },
         { type: 'SubscriptionLogs', id: 'LIST' },
+        { type: 'BillingSubscriptionLogs', id: 'LIST' },
+      ],
+    }),
+    getSubscriptionPlanAssignments: builder.query({
+      query: (subscriptionId) => `/api/subscriptions/${subscriptionId}/plan-assignments`,
+      providesTags: (_result, _err, subscriptionId) => [
+        { type: 'SubscriptionPlanAssignments', id: subscriptionId },
+        { type: 'Subscriptions', id: subscriptionId },
+      ],
+    }),
+    assignSubscriptionPlans: builder.mutation({
+      query: ({ subscriptionId, assignments }) => ({
+        url: `/api/subscriptions/${subscriptionId}/plan-assignments`,
+        method: 'PUT',
+        body: { assignments },
+      }),
+      invalidatesTags: (_result, _err, { subscriptionId }) => [
+        { type: 'SubscriptionPlanAssignments', id: subscriptionId },
+        { type: 'Subscriptions', id: subscriptionId },
+        { type: 'Subscriptions', id: 'LIST' },
+        { type: 'BillingPlans', id: 'LIST' },
+        { type: 'BillingSubscriptionLogs', id: 'LIST' },
+        { type: 'SubscriptionLogs', id: 'LIST' },
       ],
     }),
     getEmailConfig: builder.query({
@@ -90,9 +113,6 @@ export const lmsApi = createApi({
         method: 'POST',
         body: { to },
       }),
-    }),
-    getSubscriptionLogs: builder.query({
-      query: (subscriptionId) => `/api/subscriptions/${subscriptionId}/logs`,
     }),
     getAllSubscriptionLogs: builder.query({
       query: () => '/api/subscription-logs',
@@ -130,34 +150,23 @@ export const lmsApi = createApi({
     }),
     createBillingPlan: builder.mutation({
       query: (body) => ({ url: '/api/billing-plans', method: 'POST', body }),
-      invalidatesTags: [{ type: 'BillingPlans', id: 'LIST' }],
+      invalidatesTags: [{ type: 'BillingPlans', id: 'LIST' }, { type: 'BillingSubscriptionLogs', id: 'LIST' }],
     }),
     updateBillingPlan: builder.mutation({
       query: ({ id, data }) => ({ url: `/api/billing-plans/${id}`, method: 'PATCH', body: data }),
-      invalidatesTags: (_result, _err, { id }) => [{ type: 'BillingPlans', id }, { type: 'BillingPlans', id: 'LIST' }],
-    }),
-    deleteBillingPlan: builder.mutation({
-      query: (id) => ({ url: `/api/billing-plans/${id}`, method: 'DELETE' }),
-      invalidatesTags: (_result, _err, id) => [{ type: 'BillingPlans', id }, { type: 'BillingPlans', id: 'LIST' }],
-    }),
-    getAssignedSubscriptions: builder.query({
-      query: (planId) => `/api/billing-plans/${planId}/subscriptions`,
-      providesTags: (_result, _err, planId) => [{ type: 'PlanSubscriptions', id: planId }],
-    }),
-    assignSubscriptionsToPlan: builder.mutation({
-      query: ({ planId, subscriptionIds }) => ({
-        url: `/api/billing-plans/${planId}/subscriptions`,
-        method: 'PUT',
-        body: { subscriptionIds },
-      }),
-      invalidatesTags: (_result, _err, { planId }) => [
-        { type: 'PlanSubscriptions', id: planId },
+      invalidatesTags: (_result, _err, { id }) => [
+        { type: 'BillingPlans', id },
         { type: 'BillingPlans', id: 'LIST' },
         { type: 'BillingSubscriptionLogs', id: 'LIST' },
       ],
     }),
-    getBillingSubscriptionLogs: builder.query({
-      query: (planId) => `/api/billing-plans/${planId}/logs`,
+    deleteBillingPlan: builder.mutation({
+      query: (id) => ({ url: `/api/billing-plans/${id}`, method: 'DELETE' }),
+      invalidatesTags: (_result, _err, id) => [
+        { type: 'BillingPlans', id },
+        { type: 'BillingPlans', id: 'LIST' },
+        { type: 'BillingSubscriptionLogs', id: 'LIST' },
+      ],
     }),
     getAllBillingSubscriptionLogs: builder.query({
       query: () => '/api/billing-subscription-logs',
@@ -175,10 +184,11 @@ export const {
   useGetSubscriptionDetailsQuery,
   useGetAssignedModulesQuery,
   useAssignModulesMutation,
+  useGetSubscriptionPlanAssignmentsQuery,
+  useAssignSubscriptionPlansMutation,
   useGetEmailConfigQuery,
   useSaveEmailConfigMutation,
   useSendTestEmailMutation,
-  useGetSubscriptionLogsQuery,
   useGetAllSubscriptionLogsQuery,
   useGetModulesQuery,
   useCreateModuleMutation,
@@ -188,8 +198,5 @@ export const {
   useCreateBillingPlanMutation,
   useUpdateBillingPlanMutation,
   useDeleteBillingPlanMutation,
-  useGetAssignedSubscriptionsQuery,
-  useAssignSubscriptionsToPlanMutation,
-  useGetBillingSubscriptionLogsQuery,
   useGetAllBillingSubscriptionLogsQuery,
 } = lmsApi;

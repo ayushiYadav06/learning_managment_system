@@ -88,7 +88,7 @@ export function SubscriptionDetail() {
     );
   }
 
-  const { subscription, assignedModules = [], billingPlans = [] } = data;
+  const { subscription, assignedModules = [], planAssignments = [] } = data;
 
   return (
     <div className="space-y-6">
@@ -103,7 +103,7 @@ export function SubscriptionDetail() {
 
       <div>
         <h2 className="text-2xl font-bold text-[#0f172a] tracking-tight">{subscription.fullName}</h2>
-        <p className="text-slate-500 mt-1">Complete user details, masters enrolled & billing enrolled</p>
+        <p className="text-slate-500 mt-1">Complete user details, modules enrolled & billing enrolled</p>
       </div>
 
       <Card className="border-slate-200 shadow-sm">
@@ -148,6 +148,19 @@ export function SubscriptionDetail() {
                 </span>
               </div>
             )}
+            {subscription.apiKey && (
+              <div className="flex items-center justify-between py-3 border-t border-slate-100">
+                <div className="flex items-center gap-3 text-slate-600">
+                  <Key className="w-4 h-4 text-slate-400 shrink-0" />
+                  <span className="font-medium text-[#0f172a]">API Key</span>
+                </div>
+                <div className="flex items-center gap-2 max-w-[280px]">
+                  <span className="text-slate-500 text-sm font-mono select-none" title="API key is set (hidden for security)">
+                    •••••••••••••••••••••••••
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -156,13 +169,13 @@ export function SubscriptionDetail() {
         <CardHeader className="border-b border-slate-100">
           <CardTitle className="text-lg font-semibold text-[#0f172a] flex items-center gap-2">
             <Package className="w-5 h-5" />
-            Masters enrolled
+            Modules enrolled
           </CardTitle>
-          <CardDescription>All masters this user is enrolled in</CardDescription>
+          <CardDescription>All modules this user is enrolled in</CardDescription>
         </CardHeader>
         <CardContent className="pt-6">
           {assignedModules.length === 0 ? (
-            <p className="text-slate-500 py-4">Not enrolled in any masters</p>
+            <p className="text-slate-500 py-4">Not enrolled in any modules</p>
           ) : (
             <ul className="space-y-3">
               {assignedModules.map((mod) => (
@@ -185,37 +198,46 @@ export function SubscriptionDetail() {
         <CardHeader className="border-b border-slate-100">
           <CardTitle className="text-lg font-semibold text-[#0f172a] flex items-center gap-2">
             <DollarSign className="w-5 h-5" />
-            Billing enrolled
+            Plan assigned
           </CardTitle>
-          <CardDescription>All billing plans this user is enrolled in</CardDescription>
+          <CardDescription>
+            One plan per subscription. Access ends after the duration; expired plan is not accessible.
+          </CardDescription>
         </CardHeader>
         <CardContent className="pt-6">
-          {billingPlans.length === 0 ? (
-            <p className="text-slate-500 py-4">Not enrolled in any billing plan</p>
+          {planAssignments.length === 0 ? (
+            <p className="text-slate-500 py-4">No plan assigned. Use Assign on the Subscriptions page.</p>
           ) : (
             <ul className="space-y-3">
-              {billingPlans.map((plan) => (
+              {planAssignments.map((pa) => (
                 <li
-                  key={plan.id}
+                  key={pa.id}
                   className="flex items-center justify-between p-4 rounded-lg border border-slate-200 bg-slate-50/50"
                 >
                   <div>
-                    <p className="font-medium text-[#0f172a]">{plan.name}</p>
+                    <p className="font-medium text-[#0f172a]">{pa.planName}</p>
                     <p className="text-sm text-slate-500">
-                      Base: ₹{plan.cost?.toLocaleString?.() ?? plan.cost}
-                      {plan.addons?.length > 0 && (
-                        <> · Add-ons: {plan.addons.map((a) => a.name).join(', ')}</>
-                      )}
+                      Duration: {pa.duration?.replace('-', ' ') ?? '—'} · Start: {formatDateTime(pa.startDate)} · End: {formatDateTime(pa.endDate)}
                     </p>
+                    {pa.cost != null && (
+                      <p className="text-sm text-slate-500">Installation: ₹{pa.cost.toLocaleString()}</p>
+                    )}
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="border-slate-200 text-[#0f172a]"
-                    onClick={() => navigate(`/dashboard/billing`)}
-                  >
-                    View plan
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Badge
+                      className={pa.isActive ? 'bg-green-500/10 text-green-700 border-green-200' : 'bg-slate-200 text-slate-600 border-slate-300'}
+                    >
+                      {pa.isActive ? 'Active' : 'Expired'}
+                    </Badge>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-slate-200 text-[#0f172a]"
+                      onClick={() => navigate(`/dashboard/billing`)}
+                    >
+                      View plan
+                    </Button>
+                  </div>
                 </li>
               ))}
             </ul>

@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { Plus, Pencil, LucideTrash2 as Trash2, Users, DollarSign, Search } from 'lucide-react';
+import { Plus, Pencil, LucideTrash2 as Trash2, DollarSign, Search } from 'lucide-react';
 import {
   useGetBillingPlansQuery,
   useCreateBillingPlanMutation,
@@ -10,7 +10,6 @@ import {
   useDeleteBillingPlanMutation,
 } from '../store/services/lmsApi';
 import { BillingPlanDialog } from '../components/BillingPlanDialog';
-import { AssignSubscriptionsDialog } from '../components/AssignSubscriptionsDialog';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '../config/constants';
 import {
@@ -24,16 +23,10 @@ import {
 import { Badge } from '../components/ui/badge';
 import { Pagination, PAGE_SIZE } from '../components/ui/pagination';
 
-function calculateTotalCost(plan) {
-  const addonTotal = plan.addons.reduce((sum, addon) => sum + addon.cost, 0);
-  return plan.cost + addonTotal;
-}
 
 export function Billing() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState(null);
-  const [selectedPlan, setSelectedPlan] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -96,11 +89,6 @@ export function Billing() {
     setEditingPlan(null);
   };
 
-  const handleAssignSubscriptions = (planId) => {
-    setSelectedPlan(planId);
-    setIsAssignDialogOpen(true);
-  };
-
   useEffect(() => {
     if (error) toast.error(getApiErrorMessage(error, 'Failed to load billing plans'));
   }, [error]);
@@ -113,7 +101,7 @@ export function Billing() {
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 pb-2 border-b border-slate-200/60">
         <div>
-          <h2 className="text-2xl font-bold text-[#0f172a] tracking-tight">Billing Plans</h2>
+          <h2 className="text-2xl font-bold text-[#0f172a] tracking-tight">Plans</h2>
           <p className="text-slate-500 mt-1 text-sm">Manage subscription pricing and plans</p>
         </div>
         <Button
@@ -122,13 +110,13 @@ export function Billing() {
           className="bg-[#0f172a] hover:bg-[#1e293b] shadow-sm h-10 px-5 rounded-lg"
         >
           <Plus className="w-4 h-4 mr-2" />
-          New Billing Plan
+          New Plan
         </Button>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base font-semibold text-[#0f172a]">All Billing Plans</CardTitle>
+          <CardTitle className="text-base font-semibold text-[#0f172a]">All Plans</CardTitle>
           <CardDescription className="text-sm">View and manage all pricing plans</CardDescription>
         </CardHeader>
         <CardContent className="pt-6">
@@ -138,7 +126,7 @@ export function Billing() {
             <div className="text-center py-16 rounded-xl bg-slate-50/80 border border-slate-200/60">
               <DollarSign className="w-12 h-12 mx-auto mb-4 text-slate-400" />
               <p className="text-slate-700 font-medium">
-                {searchQuery.trim() ? 'No matching plans' : 'No billing plans found'}
+                {searchQuery.trim() ? 'No matching plans' : 'No plans found'}
               </p>
               <p className="text-slate-500 text-sm mt-1">
                 {searchQuery.trim() ? 'Try a different search' : 'Create your first plan to get started'}
@@ -170,10 +158,11 @@ export function Billing() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Plan Name</TableHead>
-                    <TableHead>Base Cost</TableHead>
-                    <TableHead>Add-ons</TableHead>
-                    <TableHead>Total Cost</TableHead>
-                    <TableHead>Subscriptions</TableHead>
+                    <TableHead>Modules</TableHead>
+                    <TableHead>Users</TableHead>
+                    <TableHead>After Exceed/User</TableHead>
+                    <TableHead>Installation Cost</TableHead>
+                    <TableHead>Subscription Users</TableHead>
                     <TableHead>Created</TableHead>
                     <TableHead className="text-right w-[1%] whitespace-nowrap">Actions</TableHead>
                   </TableRow>
@@ -182,26 +171,27 @@ export function Billing() {
                   {paginatedPlans.map((plan) => (
                   <TableRow key={plan.id}>
                     <TableCell className="font-medium text-[#0f172a]">{plan.name}</TableCell>
-                    <TableCell className="text-slate-600">₹{plan.cost.toLocaleString()}</TableCell>
                     <TableCell className="text-slate-600">
-                      {plan.addons.length > 0 ? (
-                        <div className="space-y-0.5">
-                          {plan.addons.map((addon, idx) => (
-                            <div key={idx} className="text-sm">
-                              {addon.name}: ₹{addon.cost}
-                            </div>
-                          ))}
-                        </div>
+                      {plan.masterIds?.length ? (
+                        <Badge variant="secondary" className="bg-slate-100 text-slate-700 text-xs">
+                          {plan.masterIds.length} module{plan.masterIds.length !== 1 ? 's' : ''}
+                        </Badge>
                       ) : (
-                        <span className="text-slate-400">None</span>
+                        <span className="text-slate-400">—</span>
                       )}
                     </TableCell>
-                    <TableCell className="font-semibold text-[#0f172a]">
-                      ₹{calculateTotalCost(plan).toLocaleString()}
+                    <TableCell className="text-slate-600">{plan.users != null ? plan.users.toLocaleString() : '—'}</TableCell>
+                    <TableCell className="text-slate-600">
+                      {plan.afterExceedLimitPerUser != null && plan.afterExceedLimitPerUser > 0
+                        ? `₹${plan.afterExceedLimitPerUser.toLocaleString()}`
+                        : '—'}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="font-semibold text-[#0f172a]">
+                      ₹{(plan.cost ?? 0).toLocaleString()}
+                    </TableCell>
+                    <TableCell className="text-slate-600">
                       <Badge variant="secondary" className="bg-[#0f172a]/10 text-[#0f172a] border-[#0f172a]/20 text-xs">
-                        {plan.subscriptionCount ?? 0} assigned
+                        {plan.subscriptionCount ?? 0} user{(plan.subscriptionCount ?? 0) !== 1 ? 's' : ''}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-slate-600">
@@ -209,15 +199,6 @@ export function Billing() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1.5">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-8 px-3 rounded-md border-slate-200 text-[#0f172a] hover:bg-slate-50 text-xs font-medium"
-                          onClick={() => handleAssignSubscriptions(plan.id)}
-                        >
-                          <Users className="w-3.5 h-3.5 mr-1.5 shrink-0" />
-                          Assign
-                        </Button>
                         <Button
                           size="sm"
                           variant="outline"
@@ -259,14 +240,6 @@ export function Billing() {
         onSubmit={editingPlan ? handleUpdatePlan : handleCreatePlan}
         initialData={editingPlan ?? undefined}
       />
-
-      {selectedPlan && (
-        <AssignSubscriptionsDialog
-          open={isAssignDialogOpen}
-          onOpenChange={setIsAssignDialogOpen}
-          planId={selectedPlan}
-        />
-      )}
     </div>
   );
 }

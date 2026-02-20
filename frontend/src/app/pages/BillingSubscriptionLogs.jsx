@@ -22,13 +22,19 @@ export function BillingSubscriptionLogs() {
   const { data: logs = [], isLoading, error } = useGetAllBillingSubscriptionLogsQuery();
 
   useEffect(() => {
-    if (error) toast.error(getApiErrorMessage(error, 'Failed to load billing subscription logs'));
+    if (error) toast.error(getApiErrorMessage(error, 'Failed to load subscriptions logs'));
   }, [error]);
 
   const filteredLogs = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return logs;
-    return logs.filter((log) => (log.planName || '').toLowerCase().includes(q));
+    return logs.filter(
+      (log) =>
+        (log.planName || '').toLowerCase().includes(q) ||
+        (log.subscriptionName || '').toLowerCase().includes(q) ||
+        (log.details || '').toLowerCase().includes(q) ||
+        (log.action || '').toLowerCase().includes(q)
+    );
   }, [logs, searchQuery]);
 
   const totalPages = Math.max(1, Math.ceil(filteredLogs.length / PAGE_SIZE));
@@ -51,21 +57,26 @@ export function BillingSubscriptionLogs() {
     }
   };
 
+  const formatDuration = (duration) => {
+    if (!duration) return '—';
+    return duration.replace(/-/g, ' ');
+  };
+
   return (
     <div className="space-y-8">
       <div className="pb-2 border-b border-slate-200/60">
-        <h2 className="text-2xl font-bold text-[#0f172a] tracking-tight">Billing Subscription Log</h2>
-        <p className="text-slate-500 mt-1 text-sm">Track all subscription assignment changes for billing plans</p>
+        <h2 className="text-2xl font-bold text-[#0f172a] tracking-tight">Plan Subscription Logs</h2>
+        <p className="text-slate-500 mt-1 text-sm">Track plan lifecycle: created, updated, and deleted</p>
       </div>
 
       <Card>
         <CardHeader>
           <CardTitle className="text-base font-semibold text-[#0f172a] flex items-center gap-2">
             <History className="w-5 h-5" />
-            All Billing Subscription Logs
+            Plan Subscription Logs
           </CardTitle>
           <CardDescription className="text-sm">
-            A new log entry is created each time subscriptions are assigned to a billing plan
+            A new log entry is created when a plan is created, updated, or deleted
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-6">
@@ -75,10 +86,10 @@ export function BillingSubscriptionLogs() {
             <div className="text-center py-16 rounded-xl bg-slate-50/80 border border-slate-200/60">
               <History className="w-12 h-12 mx-auto mb-3 text-slate-400" />
               <p className="text-slate-600 font-medium">
-                {searchQuery.trim() ? 'No matching logs' : 'No billing subscription logs yet'}
+                {searchQuery.trim() ? 'No matching logs' : 'No subscriptions logs yet'}
               </p>
               <p className="text-slate-500 text-sm mt-1">
-                {searchQuery.trim() ? 'Try a different search' : 'Assign subscriptions to a plan from the Billing page to see logs here'}
+                {searchQuery.trim() ? 'Try a different search' : 'Create, update, or delete plans from the Plans page to see logs here'}
               </p>
             </div>
           ) : (
@@ -87,7 +98,7 @@ export function BillingSubscriptionLogs() {
                 <div className="relative flex-1 max-w-sm">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <Input
-                    placeholder="Search by plan name..."
+                    placeholder="Search by plan or user name..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-9 h-9 border-slate-200 rounded-md"
@@ -97,43 +108,54 @@ export function BillingSubscriptionLogs() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Billing Plan</TableHead>
+                    <TableHead>Date & Time</TableHead>
+                    <TableHead>User (Who)</TableHead>
+                    <TableHead>Plan</TableHead>
                     <TableHead>Action</TableHead>
-                    <TableHead>Assigned Subscriptions</TableHead>
+                    <TableHead>Duration</TableHead>
+                    <TableHead>Valid From</TableHead>
+                    <TableHead>Valid Until</TableHead>
+                    <TableHead>Details</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {paginatedLogs.map((log) => (
-                  <TableRow key={log.id}>
+                    <TableRow key={log.id}>
                       <TableCell className="text-slate-600 whitespace-nowrap">
                         {formatDate(log.date)}
+                      </TableCell>
+                      <TableCell className="font-medium text-[#0f172a]">
+                        {log.subscriptionName ?? '—'}
                       </TableCell>
                       <TableCell className="font-medium text-[#0f172a]">
                         {log.planName ?? '—'}
                       </TableCell>
                       <TableCell>
-                        <Badge className="bg-[#0f172a]/10 text-[#0f172a] border-[#0f172a]/20">
-                          {log.action ?? 'Subscriptions Assigned'}
+                        <Badge
+                          className={
+                            log.action === 'Plan updated'
+                              ? 'bg-blue-500/10 text-blue-700 border-blue-200'
+                              : log.action === 'Plan created'
+                                ? 'bg-emerald-500/10 text-emerald-700 border-emerald-200'
+                                : log.action === 'Plan deleted'
+                                  ? 'bg-red-500/10 text-red-700 border-red-200'
+                                  : 'bg-slate-500/10 text-slate-700 border-slate-200'
+                          }
+                        >
+                          {log.action ?? '—'}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-slate-600">
-                        {Array.isArray(log.assignedSubscriptionNames) &&
-                        log.assignedSubscriptionNames.length > 0 ? (
-                          <div className="flex flex-wrap gap-1.5">
-                            {log.assignedSubscriptionNames.map((name, idx) => (
-                              <Badge
-                                key={idx}
-                                variant="secondary"
-                                className="bg-slate-100 text-slate-700 border-slate-200"
-                              >
-                                {name}
-                              </Badge>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-slate-400">None</span>
-                        )}
+                        {formatDuration(log.duration)}
+                      </TableCell>
+                      <TableCell className="text-slate-600 whitespace-nowrap">
+                        {formatDate(log.startDate)}
+                      </TableCell>
+                      <TableCell className="text-slate-600 whitespace-nowrap">
+                        {formatDate(log.endDate)}
+                      </TableCell>
+                      <TableCell className="text-slate-600 max-w-[200px] truncate" title={log.details ?? ''}>
+                        {log.details ?? '—'}
                       </TableCell>
                     </TableRow>
                   ))}

@@ -1,6 +1,5 @@
 import { Subscription } from '../models/Subscription.js';
-import { SubscribedModule } from '../models/SubscribedModule.js';
-import { BillingSubscription } from '../models/BillingSubscription.js';
+import { SubscriptionPlanAssignment } from '../models/SubscriptionPlanAssignment.js';
 import { Module } from '../models/Module.js';
 import { BillingPlan } from '../models/BillingPlan.js';
 import { toResponse, toResponseList } from '../utils/serialize.js';
@@ -15,9 +14,12 @@ export async function list(req, res) {
     const list = await Subscription.find(filter)
       .sort({ createdAt: -1 })
       .lean();
+    const subIdsWithPlan = await SubscriptionPlanAssignment.distinct('subscriptionId');
+    const hasPlanSet = new Set(subIdsWithPlan.map((id) => id.toString()));
     const out = list.map((doc) => {
       const item = toResponse(doc);
       item.password = doc.password;
+      item.hasPlanAssignment = hasPlanSet.has(doc._id.toString());
       return item;
     });
     return res.json(out);
@@ -70,7 +72,7 @@ export async function getById(req, res) {
 
 /**
  * GET /api/subscriptions/:id/details
- * Returns subscription with password, assigned modules, and billing plans this subscription is in.
+ * Returns subscription with password, masters enrolled (from assigned plan(s)), plan assignments (with duration/endDate), and apiKey.
  */
 export async function getDetails(req, res) {
   try {
@@ -84,35 +86,52 @@ export async function getDetails(req, res) {
       return res.status(404).json({ success: false, message: 'Subscription not found' });
     }
 
-    const [subscribedModule, billingAssignments] = await Promise.all([
-      SubscribedModule.findOne({ subscriptionId: subId }).lean(),
-      BillingSubscription.find({ subscriptionIds: subId }).lean(),
-    ]);
+    const planAssignments = await SubscriptionPlanAssignment.find({ subscriptionId: subId })
+      .sort({ startDate: -1 })
+      .lean();
 
-    const moduleIds = subscribedModule?.moduleIds || [];
-    const planIds = (billingAssignments || []).map((b) => b.planId);
+    const planIds = [...new Set((planAssignments || []).map((a) => a.planId))];
+    const plans = planIds.length > 0 ? await BillingPlan.find({ _id: { $in: planIds } }).lean() : [];
 
-    const [modules, plans] = await Promise.all([
-      moduleIds.length > 0 ? Module.find({ _id: { $in: moduleIds } }).lean() : [],
-      planIds.length > 0 ? BillingPlan.find({ _id: { $in: planIds } }).lean() : [],
-    ]);
+    const planMap = Object.fromEntries(plans.map((p) => [p._id.toString(), p]));
 
+    // Masters enrolled = masters from the assigned plan(s)
+    const masterIdsFromPlans = [...new Set(plans.flatMap((p) => (p.masterIds || []).map((id) => id.toString())))];
+    const masterObjectIds = masterIdsFromPlans
+      .filter((id) => mongoose.Types.ObjectId.isValid(id))
+      .map((id) => new mongoose.Types.ObjectId(id));
+    const modules = masterObjectIds.length > 0 ? await Module.find({ _id: { $in: masterObjectIds } }).lean() : [];
     const moduleMap = Object.fromEntries(modules.map((m) => [m._id.toString(), m]));
-    const orderedModules = moduleIds.map((mid) => moduleMap[mid?.toString()]).filter(Boolean);
+    const orderedModules = masterIdsFromPlans.map((mid) => moduleMap[mid]).filter(Boolean);
+    const now = new Date();
+    const planAssignmentsWithDetails = (planAssignments || []).map((a) => {
+      const plan = planMap[a.planId.toString()];
+      const endDate = a.endDate ? new Date(a.endDate) : null;
+      const isActive = endDate && endDate >= now;
+      return {
+        id: a._id.toString(),
+        planId: a.planId.toString(),
+        planName: plan?.name ?? '',
+        startDate: a.startDate,
+        endDate: a.endDate,
+        duration: a.duration,
+        isActive: !!isActive,
+        cost: plan?.cost,
+        addons: plan?.addons || [],
+      };
+    });
+
+    const subResponse = toResponse(subscription);
+    if (subscription.apiKey) subResponse.apiKey = subscription.apiKey;
 
     return res.json({
-      subscription: toResponse(subscription),
+      subscription: subResponse,
       assignedModules: orderedModules.map((m) => ({
         id: m._id.toString(),
         name: m.name,
         description: m.description,
       })),
-      billingPlans: plans.map((p) => ({
-        id: p._id.toString(),
-        name: p.name,
-        cost: p.cost,
-        addons: p.addons || [],
-      })),
+      planAssignments: planAssignmentsWithDetails,
     });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });

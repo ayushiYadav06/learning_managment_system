@@ -53,9 +53,9 @@ export function Modules() {
     try {
       await createModule(data).unwrap();
       setIsDialogOpen(false);
-      toast.success('Master created successfully');
+      toast.success('Module created successfully');
     } catch (e) {
-      toast.error(getApiErrorMessage(e, 'Failed to create master'));
+      toast.error(getApiErrorMessage(e, 'Failed to create module'));
     }
   };
 
@@ -65,19 +65,19 @@ export function Modules() {
       await updateModule({ id: editingModule.id, data }).unwrap();
       setEditingModule(null);
       setIsDialogOpen(false);
-      toast.success('Master updated successfully');
+      toast.success('Module updated successfully');
     } catch (e) {
-      toast.error(getApiErrorMessage(e, 'Failed to update master'));
+      toast.error(getApiErrorMessage(e, 'Failed to update module'));
     }
   };
 
   const handleDeleteModule = async (id, name) => {
-    if (!confirm(`Are you sure you want to delete the ${name} master?`)) return;
+    if (!confirm(`Are you sure you want to delete the ${name} module?`)) return;
     try {
       await deleteModule(id).unwrap();
-      toast.success('Master deleted');
+      toast.success('Module deleted');
     } catch (e) {
-      toast.error(getApiErrorMessage(e, 'Failed to delete master'));
+      toast.error(getApiErrorMessage(e, 'Failed to delete module'));
     }
   };
 
@@ -92,15 +92,15 @@ export function Modules() {
   };
 
   useEffect(() => {
-    if (error) toast.error(getApiErrorMessage(error, 'Failed to load masters'));
+    if (error) toast.error(getApiErrorMessage(error, 'Failed to load modules'));
   }, [error]);
 
   return (
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 pb-2 border-b border-slate-200/60">
         <div>
-          <h2 className="text-2xl font-bold text-[#0f172a] tracking-tight">Master</h2>
-          <p className="text-slate-500 mt-1 text-sm">Manage system masters and features</p>
+          <h2 className="text-2xl font-bold text-[#0f172a] tracking-tight">Modules</h2>
+          <p className="text-slate-500 mt-1 text-sm">Manage system modules and features</p>
         </div>
         <Button
           onClick={() => setIsDialogOpen(true)}
@@ -108,14 +108,14 @@ export function Modules() {
           className="bg-[#0f172a] hover:bg-[#1e293b] shadow-sm h-10 px-5 rounded-lg"
         >
           <Plus className="w-4 h-4 mr-2" />
-          New Master
+          New Module
         </Button>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base font-semibold text-[#0f172a]">Master</CardTitle>
-          <CardDescription className="text-sm">All available masters in the LMS system</CardDescription>
+          <CardTitle className="text-base font-semibold text-[#0f172a]">Modules</CardTitle>
+          <CardDescription className="text-sm">All available modules in the LMS system</CardDescription>
         </CardHeader>
         <CardContent className="pt-6">
           {isLoading ? (
@@ -124,10 +124,10 @@ export function Modules() {
             <div className="text-center py-16 rounded-xl bg-slate-50/80 border border-slate-200/60">
               <Package className="w-12 h-12 mx-auto mb-4 text-slate-400" />
               <p className="text-slate-700 font-medium">
-                {searchQuery.trim() ? 'No matching masters' : 'No masters found'}
+                {searchQuery.trim() ? 'No matching modules' : 'No modules found'}
               </p>
               <p className="text-slate-500 text-sm mt-1">
-                {searchQuery.trim() ? 'Try a different search' : 'Create your first master to get started'}
+                {searchQuery.trim() ? 'Try a different search' : 'Create your first module to get started'}
               </p>
               {!searchQuery.trim() && (
                 <Button
@@ -135,7 +135,7 @@ export function Modules() {
                   className="mt-5 h-10 px-4 rounded-lg border-slate-200 text-[#0f172a] hover:bg-slate-100"
                   onClick={() => setIsDialogOpen(true)}
                 >
-                  Create First Master
+                  Create First Module
                 </Button>
               )}
             </div>
@@ -155,7 +155,7 @@ export function Modules() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Master Name</TableHead>
+                    <TableHead>Module Name</TableHead>
                     <TableHead>Description</TableHead>
                     <TableHead>Created Date</TableHead>
                     <TableHead className="text-right w-[1%] whitespace-nowrap">Actions</TableHead>

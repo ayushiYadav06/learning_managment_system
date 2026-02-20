@@ -12,11 +12,13 @@ const subscriptionSchema = new mongoose.Schema(
     },
     username: { type: String, required: true, trim: true, unique: true },
     password: { type: String, required: true },
+    apiKey: { type: String, default: null, sparse: true, maxlength: 256 },
   },
   { timestamps: true }
 );
 
 subscriptionSchema.index({ type: 1 });
 subscriptionSchema.index({ username: 1 });
+subscriptionSchema.index({ apiKey: 1 }, { unique: true, sparse: true });
 
 export const Subscription = mongoose.model('Subscription', subscriptionSchema);

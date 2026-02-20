@@ -4,14 +4,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { Plus, LucideTrash2 as Trash2, Settings, Users, Eye, EyeOff, Search, Mail } from 'lucide-react';
+import { Plus, LucideTrash2 as Trash2, ArrowUpCircle, Link2, Eye, EyeOff, Search, Mail, Users } from 'lucide-react';
 import {
   useGetSubscriptionsQuery,
   useCreateSubscriptionMutation,
   useDeleteSubscriptionMutation,
 } from '../store/services/lmsApi';
 import { NewSubscriptionDialog } from '../components/NewSubscriptionDialog';
-import { AssignModulesDialog } from '../components/AssignModulesDialog';
+import { AssignPlansDialog } from '../components/AssignPlansDialog';
 import { ConfigureEmailDialog } from '../components/ConfigureEmailDialog';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '../config/constants';
@@ -82,7 +82,7 @@ export function Subscriptions() {
     }
   };
 
-  const handleAssignModules = (subscriptionId) => {
+  const handleAssignPlans = (subscriptionId) => {
     setSelectedSubscription(subscriptionId);
     setIsAssignDialogOpen(true);
   };
@@ -185,7 +185,7 @@ export function Subscriptions() {
                               <Link
                                 to={`/dashboard/subscriptions/${sub.id}`}
                                 className="text-[#0f172a] hover:underline focus:outline-none focus:ring-2 focus:ring-[#0f172a]/20 rounded cursor-pointer"
-                                title="View complete details, masters enrolled & billing enrolled"
+                                title="View complete details, modules enrolled & billing enrolled"
                               >
                                 {sub.fullName}
                               </Link>
@@ -222,10 +222,19 @@ export function Subscriptions() {
                                   size="sm"
                                   variant="outline"
                                   className="h-8 px-3 rounded-md border-slate-200 text-[#0f172a] hover:bg-slate-50 text-xs font-medium"
-                                  onClick={() => handleAssignModules(sub.id)}
+                                  onClick={() => handleAssignPlans(sub.id)}
                                 >
-                                  <Settings className="w-3.5 h-3.5 mr-1.5 shrink-0" />
-                                  Assign
+                                  {sub.hasPlanAssignment ? (
+                                    <>
+                                      <ArrowUpCircle className="w-3.5 h-3.5 mr-1.5 shrink-0" />
+                                      Upgrade
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Link2 className="w-3.5 h-3.5 mr-1.5 shrink-0" />
+                                      Assign
+                                    </>
+                                  )}
                                 </Button>
                                 <Button
                                   size="sm"
@@ -273,7 +282,7 @@ export function Subscriptions() {
       />
 
       {selectedSubscription && (
-        <AssignModulesDialog
+        <AssignPlansDialog
           open={isAssignDialogOpen}
           onOpenChange={setIsAssignDialogOpen}
           subscriptionId={selectedSubscription}

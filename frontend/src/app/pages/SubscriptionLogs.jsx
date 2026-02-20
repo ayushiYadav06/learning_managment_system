@@ -28,7 +28,11 @@ export function SubscriptionLogs() {
   const filteredLogs = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return logs;
-    return logs.filter((log) => (log.subscriptionName || '').toLowerCase().includes(q));
+    return logs.filter(
+      (log) =>
+        (log.subscriptionName || '').toLowerCase().includes(q) ||
+        (log.planName || '').toLowerCase().includes(q)
+    );
   }, [logs, searchQuery]);
 
   const totalPages = Math.max(1, Math.ceil(filteredLogs.length / PAGE_SIZE));
@@ -51,21 +55,26 @@ export function SubscriptionLogs() {
     }
   };
 
+  const formatDuration = (duration) => {
+    if (!duration) return '—';
+    return duration.replace(/-/g, ' ');
+  };
+
   return (
     <div className="space-y-8">
       <div className="pb-2 border-b border-slate-200/60">
-        <h2 className="text-2xl font-bold text-[#0f172a] tracking-tight">Subscription Log</h2>
-        <p className="text-slate-500 mt-1 text-sm">Track all master assignment changes for subscriptions</p>
+        <h2 className="text-2xl font-bold text-[#0f172a] tracking-tight">Subscriptions Logs</h2>
+        <p className="text-slate-500 mt-1 text-sm">Track when subscriptions are assigned or upgraded to a plan</p>
       </div>
 
       <Card>
         <CardHeader>
           <CardTitle className="text-base font-semibold text-[#0f172a] flex items-center gap-2">
             <History className="w-5 h-5" />
-            All Subscription Logs
+            Subscriptions Logs
           </CardTitle>
           <CardDescription className="text-sm">
-            A new log entry is created each time masters are assigned to a subscription
+            A new log entry is created each time a subscription is assigned or upgraded to a plan
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-6">
@@ -78,7 +87,7 @@ export function SubscriptionLogs() {
                 {searchQuery.trim() ? 'No matching logs' : 'No subscription logs yet'}
               </p>
               <p className="text-slate-500 text-sm mt-1">
-                {searchQuery.trim() ? 'Try a different search' : 'Assign masters to a subscription from the Subscriptions page to see logs here'}
+                {searchQuery.trim() ? 'Try a different search' : 'Assign a plan to a subscription from the Subscriptions page to see logs here'}
               </p>
             </div>
           ) : (
@@ -87,7 +96,7 @@ export function SubscriptionLogs() {
                 <div className="relative flex-1 max-w-sm">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <Input
-                    placeholder="Search by subscription name..."
+                    placeholder="Search by subscription or plan name..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-9 h-9 border-slate-200 rounded-md"
@@ -97,42 +106,46 @@ export function SubscriptionLogs() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Date</TableHead>
+                    <TableHead>Date & Time</TableHead>
                     <TableHead>Subscription</TableHead>
+                    <TableHead>Plan</TableHead>
                     <TableHead>Action</TableHead>
-                    <TableHead>Assigned Masters</TableHead>
+                    <TableHead>Duration</TableHead>
+                    <TableHead>Valid From</TableHead>
+                    <TableHead>Valid Until</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {paginatedLogs.map((log) => (
-                  <TableRow key={log.id}>
+                    <TableRow key={log.id}>
                       <TableCell className="text-slate-600 whitespace-nowrap">
                         {formatDate(log.date)}
                       </TableCell>
                       <TableCell className="font-medium text-[#0f172a]">
                         {log.subscriptionName ?? '—'}
                       </TableCell>
+                      <TableCell className="font-medium text-[#0f172a]">
+                        {log.planName ?? '—'}
+                      </TableCell>
                       <TableCell>
-                        <Badge className="bg-[#0f172a]/10 text-[#0f172a] border-[#0f172a]/20">
-                          {log.action ?? 'Masters Assigned'}
+                        <Badge
+                          className={
+                            log.action === 'Upgraded'
+                              ? 'bg-amber-500/10 text-amber-700 border-amber-200'
+                              : 'bg-green-500/10 text-green-700 border-green-200'
+                          }
+                        >
+                          {log.action ?? 'Assigned'}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-slate-600">
-                        {Array.isArray(log.assignedModuleNames) && log.assignedModuleNames.length > 0 ? (
-                          <div className="flex flex-wrap gap-1.5">
-                            {log.assignedModuleNames.map((name, idx) => (
-                              <Badge
-                                key={idx}
-                                variant="secondary"
-                                className="bg-slate-100 text-slate-700 border-slate-200"
-                              >
-                                {name}
-                              </Badge>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-slate-400">None</span>
-                        )}
+                        {formatDuration(log.duration)}
+                      </TableCell>
+                      <TableCell className="text-slate-600 whitespace-nowrap">
+                        {formatDate(log.startDate)}
+                      </TableCell>
+                      <TableCell className="text-slate-600 whitespace-nowrap">
+                        {formatDate(log.endDate)}
                       </TableCell>
                     </TableRow>
                   ))}

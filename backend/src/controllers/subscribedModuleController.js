@@ -1,5 +1,7 @@
 import { SubscribedModule } from '../models/SubscribedModule.js';
 import { SubscriptionLog } from '../models/SubscriptionLog.js';
+import { SubscriptionActivityLog } from '../models/SubscriptionActivityLog.js';
+import { Subscription } from '../models/Subscription.js';
 import { toResponse } from '../utils/serialize.js';
 import mongoose from 'mongoose';
 
@@ -51,6 +53,14 @@ export async function assignModules(req, res) {
       subscriptionId: subId,
       assignedModules: ids,
       action: 'Modules Assigned',
+    });
+
+    const sub = await Subscription.findById(subId).select('fullName').lean();
+    await SubscriptionActivityLog.create({
+      action: 'masters_updated',
+      subscriptionId: subId,
+      subscriptionName: sub?.fullName ?? '',
+      details: ids.length ? `Masters updated (${ids.length} assigned)` : 'Masters cleared',
     });
 
     const doc = await SubscribedModule.findOne({ subscriptionId: subId }).lean();
