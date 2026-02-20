@@ -2,6 +2,7 @@ import { Router } from 'express';
 import * as subscriptionController from '../controllers/subscriptionController.js';
 import * as subscribedModuleController from '../controllers/subscribedModuleController.js';
 import * as subscriptionLogController from '../controllers/subscriptionLogController.js';
+import * as emailConfigController from '../controllers/emailConfigController.js';
 
 const router = Router();
 
@@ -16,5 +17,9 @@ router.get('/:subscriptionId/modules', subscribedModuleController.getAssignedMod
 router.put('/:subscriptionId/modules', subscribedModuleController.assignModules);
 
 router.get('/:subscriptionId/logs', subscriptionLogController.getBySubscriptionId);
+
+router.get('/:subscriptionId/email-config', emailConfigController.getBySubscriptionId);
+router.put('/:subscriptionId/email-config', emailConfigController.updateBySubscriptionId);
+router.post('/:subscriptionId/email-config/test', emailConfigController.sendTestBySubscriptionId);
 
 export default router;

@@ -28,7 +28,7 @@ const baseQueryWithAuthHandling = async (args, api, extraOptions) => {
 export const lmsApi = createApi({
   reducerPath: 'lmsApi',
   baseQuery: baseQueryWithAuthHandling,
-  tagTypes: ['Subscriptions', 'Modules', 'BillingPlans', 'SubscriptionModules', 'PlanSubscriptions', 'SubscriptionLogs', 'BillingSubscriptionLogs'],
+  tagTypes: ['Subscriptions', 'Modules', 'BillingPlans', 'SubscriptionModules', 'PlanSubscriptions', 'SubscriptionLogs', 'BillingSubscriptionLogs', 'EmailConfig'],
   endpoints: (builder) => ({
     getSubscriptions: builder.query({
       query: (type) => (type ? `/api/subscriptions?type=${encodeURIComponent(type)}` : '/api/subscriptions'),
@@ -71,6 +71,25 @@ export const lmsApi = createApi({
         { type: 'Subscriptions', id: 'LIST' },
         { type: 'SubscriptionLogs', id: 'LIST' },
       ],
+    }),
+    getEmailConfig: builder.query({
+      query: (subscriptionId) => `/api/subscriptions/${subscriptionId}/email-config`,
+      providesTags: (_result, _err, subscriptionId) => [{ type: 'EmailConfig', id: subscriptionId }],
+    }),
+    saveEmailConfig: builder.mutation({
+      query: ({ subscriptionId, smtpHost, port, email, appPassword }) => ({
+        url: `/api/subscriptions/${subscriptionId}/email-config`,
+        method: 'PUT',
+        body: { smtpHost, port, email, appPassword },
+      }),
+      invalidatesTags: (_result, _err, { subscriptionId }) => [{ type: 'EmailConfig', id: subscriptionId }],
+    }),
+    sendTestEmail: builder.mutation({
+      query: ({ subscriptionId, to }) => ({
+        url: `/api/subscriptions/${subscriptionId}/email-config/test`,
+        method: 'POST',
+        body: { to },
+      }),
     }),
     getSubscriptionLogs: builder.query({
       query: (subscriptionId) => `/api/subscriptions/${subscriptionId}/logs`,
@@ -156,6 +175,9 @@ export const {
   useGetSubscriptionDetailsQuery,
   useGetAssignedModulesQuery,
   useAssignModulesMutation,
+  useGetEmailConfigQuery,
+  useSaveEmailConfigMutation,
+  useSendTestEmailMutation,
   useGetSubscriptionLogsQuery,
   useGetAllSubscriptionLogsQuery,
   useGetModulesQuery,

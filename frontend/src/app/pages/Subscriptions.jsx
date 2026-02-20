@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { Plus, LucideTrash2 as Trash2, Settings, Users, Eye, EyeOff, Search } from 'lucide-react';
+import { Plus, LucideTrash2 as Trash2, Settings, Users, Eye, EyeOff, Search, Mail } from 'lucide-react';
 import {
   useGetSubscriptionsQuery,
   useCreateSubscriptionMutation,
@@ -12,6 +12,7 @@ import {
 } from '../store/services/lmsApi';
 import { NewSubscriptionDialog } from '../components/NewSubscriptionDialog';
 import { AssignModulesDialog } from '../components/AssignModulesDialog';
+import { ConfigureEmailDialog } from '../components/ConfigureEmailDialog';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '../config/constants';
 import {
@@ -30,6 +31,7 @@ export function Subscriptions() {
   const [isNewDialogOpen, setIsNewDialogOpen] = useState(false);
   const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
   const [selectedSubscription, setSelectedSubscription] = useState(null);
+  const [selectedSubscriptionForEmail, setSelectedSubscriptionForEmail] = useState(null);
   const [activeTab, setActiveTab] = useState('Individual');
   const [visiblePasswordId, setVisiblePasswordId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -83,6 +85,10 @@ export function Subscriptions() {
   const handleAssignModules = (subscriptionId) => {
     setSelectedSubscription(subscriptionId);
     setIsAssignDialogOpen(true);
+  };
+
+  const handleConfigureEmail = (subscriptionId) => {
+    setSelectedSubscriptionForEmail(subscriptionId);
   };
 
   useEffect(() => {
@@ -223,6 +229,15 @@ export function Subscriptions() {
                                 </Button>
                                 <Button
                                   size="sm"
+                                  variant="outline"
+                                  className="h-8 px-3 rounded-md border-slate-200 text-[#0f172a] hover:bg-slate-50 text-xs font-medium"
+                                  onClick={() => handleConfigureEmail(sub.id)}
+                                >
+                                  <Mail className="w-3.5 h-3.5 mr-1.5 shrink-0" />
+                                  Configure Email
+                                </Button>
+                                <Button
+                                  size="sm"
                                   variant="destructive"
                                   className="h-8 w-8 p-0 rounded-md"
                                   onClick={() => handleDeleteSubscription(sub.id, sub.fullName)}
@@ -264,6 +279,12 @@ export function Subscriptions() {
           subscriptionId={selectedSubscription}
         />
       )}
+
+      <ConfigureEmailDialog
+        open={!!selectedSubscriptionForEmail}
+        onOpenChange={(open) => { if (!open) setSelectedSubscriptionForEmail(null); }}
+        subscriptionId={selectedSubscriptionForEmail}
+      />
     </div>
   );
 }
