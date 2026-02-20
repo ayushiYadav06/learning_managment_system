@@ -24,7 +24,7 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <Navigate to="/dashboard/subscriptions" replace />,
+        element: <Navigate to="/dashboard/master" replace />,
       },
       {
         path: 'subscriptions',
@@ -35,7 +35,7 @@ export const router = createBrowserRouter([
         element: <SubscriptionDetail />,
       },
       {
-        path: 'modules',
+        path: 'master',
         element: <Modules />,
       },
       {

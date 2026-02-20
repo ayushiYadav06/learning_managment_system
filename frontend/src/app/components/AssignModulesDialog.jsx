@@ -48,10 +48,10 @@ export function AssignModulesDialog({ open, onOpenChange, subscriptionId }) {
   const handleSubmit = async () => {
     try {
       await assignModules({ subscriptionId, moduleIds: selectedModules }).unwrap();
-      toast.success(`Modules assigned successfully to ${subscriptionName}`);
+      toast.success(`Masters assigned successfully to ${subscriptionName}`);
       onOpenChange(false);
     } catch (e) {
-      toast.error(getApiErrorMessage(e, 'Failed to assign modules'));
+      toast.error(getApiErrorMessage(e, 'Failed to assign masters'));
     }
   };
 
@@ -59,14 +59,14 @@ export function AssignModulesDialog({ open, onOpenChange, subscriptionId }) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Assign Modules</DialogTitle>
-          <DialogDescription>Select modules to assign to {subscriptionName}</DialogDescription>
+          <DialogTitle>Assign Masters</DialogTitle>
+          <DialogDescription>Select masters to assign to {subscriptionName}</DialogDescription>
         </DialogHeader>
         <ScrollArea className="max-h-[400px] pr-4">
           <div className="space-y-4 py-4">
             {modules.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
-                No modules available. Please create modules first.
+                No masters available. Please create masters first.
               </div>
             ) : (
               modules.map((module) => (
@@ -95,7 +95,7 @@ export function AssignModulesDialog({ open, onOpenChange, subscriptionId }) {
             Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={modules.length === 0 || isLoading}>
-            Assign Modules ({selectedModules.length})
+            Assign Masters ({selectedModules.length})
           </Button>
         </DialogFooter>
       </DialogContent>

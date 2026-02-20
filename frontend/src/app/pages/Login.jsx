@@ -45,7 +45,7 @@ export function Login() {
             Billing & subscription management, simplified.
           </h1>
           <p className="text-slate-300 text-lg max-w-sm leading-relaxed">
-            Sign in to manage plans, modules, and subscriptions from one secure dashboard.
+            Sign in to manage plans, masters, and subscriptions from one secure dashboard.
           </p>
         </div>
         <div className="flex gap-6 text-sm text-slate-400">

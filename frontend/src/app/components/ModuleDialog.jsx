@@ -35,15 +35,15 @@ export function ModuleDialog({ open, onOpenChange, onSubmit, initialData }) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>{initialData ? 'Edit Module' : 'Create New Module'}</DialogTitle>
+          <DialogTitle>{initialData ? 'Edit Master' : 'Create New Master'}</DialogTitle>
           <DialogDescription>
-            {initialData ? 'Update module information' : 'Add a new module to the system'}
+            {initialData ? 'Update master information' : 'Add a new master to the system'}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Module Name *</Label>
+              <Label htmlFor="name">Master Name *</Label>
               <Input
                 id="name"
                 value={formData.name}
@@ -58,7 +58,7 @@ export function ModuleDialog({ open, onOpenChange, onSubmit, initialData }) {
                 id="description"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Brief description of the module"
+                placeholder="Brief description of the master"
                 rows={4}
                 required
               />
@@ -69,7 +69,7 @@ export function ModuleDialog({ open, onOpenChange, onSubmit, initialData }) {
               Cancel
             </Button>
             <Button type="submit">
-              {initialData ? 'Update Module' : 'Create Module'}
+              {initialData ? 'Update Master' : 'Create Master'}
             </Button>
           </DialogFooter>
         </form>

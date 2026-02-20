@@ -185,7 +185,7 @@ export function Subscriptions() {
                               <Link
                                 to={`/dashboard/subscriptions/${sub.id}`}
                                 className="text-[#0f172a] hover:underline focus:outline-none focus:ring-2 focus:ring-[#0f172a]/20 rounded cursor-pointer"
-                                title="View complete details, modules enrolled & billing enrolled"
+                                title="View complete details, masters enrolled & billing enrolled"
                               >
                                 {sub.fullName}
                               </Link>

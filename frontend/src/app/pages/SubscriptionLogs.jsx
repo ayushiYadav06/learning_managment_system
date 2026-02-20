@@ -55,7 +55,7 @@ export function SubscriptionLogs() {
     <div className="space-y-8">
       <div className="pb-2 border-b border-slate-200/60">
         <h2 className="text-2xl font-bold text-[#0f172a] tracking-tight">Subscription Log</h2>
-        <p className="text-slate-500 mt-1 text-sm">Track all module assignment changes for subscriptions</p>
+        <p className="text-slate-500 mt-1 text-sm">Track all master assignment changes for subscriptions</p>
       </div>
 
       <Card>
@@ -65,7 +65,7 @@ export function SubscriptionLogs() {
             All Subscription Logs
           </CardTitle>
           <CardDescription className="text-sm">
-            A new log entry is created each time modules are assigned to a subscription
+            A new log entry is created each time masters are assigned to a subscription
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-6">
@@ -78,7 +78,7 @@ export function SubscriptionLogs() {
                 {searchQuery.trim() ? 'No matching logs' : 'No subscription logs yet'}
               </p>
               <p className="text-slate-500 text-sm mt-1">
-                {searchQuery.trim() ? 'Try a different search' : 'Assign modules to a subscription from the Subscriptions page to see logs here'}
+                {searchQuery.trim() ? 'Try a different search' : 'Assign masters to a subscription from the Subscriptions page to see logs here'}
               </p>
             </div>
           ) : (
@@ -100,7 +100,7 @@ export function SubscriptionLogs() {
                     <TableHead>Date</TableHead>
                     <TableHead>Subscription</TableHead>
                     <TableHead>Action</TableHead>
-                    <TableHead>Assigned Modules</TableHead>
+                    <TableHead>Assigned Masters</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -114,7 +114,7 @@ export function SubscriptionLogs() {
                       </TableCell>
                       <TableCell>
                         <Badge className="bg-[#0f172a]/10 text-[#0f172a] border-[#0f172a]/20">
-                          {log.action ?? 'Modules Assigned'}
+                          {log.action ?? 'Masters Assigned'}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-slate-600">

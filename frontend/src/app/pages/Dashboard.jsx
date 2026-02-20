@@ -16,8 +16,8 @@ export function Dashboard() {
   };
 
   const navItems = [
+    { to: '/dashboard/master', icon: Package, label: 'Master' },
     { to: '/dashboard/subscriptions', icon: Users, label: 'Subscriptions' },
-    { to: '/dashboard/modules', icon: Package, label: 'Modules' },
     { to: '/dashboard/billing', icon: DollarSign, label: 'Billing' },
     { to: '/dashboard/subscription-log', icon: History, label: 'Subscription Log' },
     { to: '/dashboard/billing-subscription-log', icon: History, label: 'Billing Subscription Log' },

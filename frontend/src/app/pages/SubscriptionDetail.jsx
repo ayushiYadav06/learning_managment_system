@@ -103,7 +103,7 @@ export function SubscriptionDetail() {
 
       <div>
         <h2 className="text-2xl font-bold text-[#0f172a] tracking-tight">{subscription.fullName}</h2>
-        <p className="text-slate-500 mt-1">Complete user details, modules enrolled & billing enrolled</p>
+        <p className="text-slate-500 mt-1">Complete user details, masters enrolled & billing enrolled</p>
       </div>
 
       <Card className="border-slate-200 shadow-sm">
@@ -156,13 +156,13 @@ export function SubscriptionDetail() {
         <CardHeader className="border-b border-slate-100">
           <CardTitle className="text-lg font-semibold text-[#0f172a] flex items-center gap-2">
             <Package className="w-5 h-5" />
-            Modules enrolled
+            Masters enrolled
           </CardTitle>
-          <CardDescription>All modules this user is enrolled in</CardDescription>
+          <CardDescription>All masters this user is enrolled in</CardDescription>
         </CardHeader>
         <CardContent className="pt-6">
           {assignedModules.length === 0 ? (
-            <p className="text-slate-500 py-4">Not enrolled in any modules</p>
+            <p className="text-slate-500 py-4">Not enrolled in any masters</p>
           ) : (
             <ul className="space-y-3">
               {assignedModules.map((mod) => (
