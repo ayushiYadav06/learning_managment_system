@@ -81,7 +81,7 @@ export function AssignModulesDialog({ open, onOpenChange, subscriptionId }) {
                   />
                   <div className="flex-1">
                     <Label htmlFor={module.id} className="cursor-pointer font-medium">
-                      {module.name}
+                      {module.module_code ? `${module.name} (${module.module_code})` : module.name}
                     </Label>
                     <p className="text-sm text-gray-500 mt-1">{module.description}</p>
                   </div>

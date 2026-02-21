@@ -3,6 +3,7 @@ import { SubscriptionPlanAssignment } from '../models/SubscriptionPlanAssignment
 import { Module } from '../models/Module.js';
 import { BillingPlan } from '../models/BillingPlan.js';
 import { toResponse, toResponseList } from '../utils/serialize.js';
+import { sendAdminEmail } from './adminEmailConfigController.js';
 import mongoose from 'mongoose';
 
 const SUBSCRIPTION_TYPES = ['Individual', 'Hybrid', 'Institute/School'];
@@ -47,6 +48,16 @@ export async function create(req, res) {
       password,
     });
     const out = toResponse(doc);
+    try {
+      await sendAdminEmail(
+        doc.email,
+        'LMS – You are subscribed',
+        `Hello ${doc.fullName},\n\nYou have been subscribed to the LMS. Your login details:\nUsername: ${doc.username}\nPassword: ${password}\n\nPlease keep your password secure.`,
+        `<p>Hello <strong>${doc.fullName}</strong>,</p><p>You have been subscribed to the LMS. Your login details:</p><ul><li><strong>Username:</strong> ${doc.username}</li><li><strong>Password:</strong> ${password}</li></ul><p>Please keep your password secure.</p>`
+      );
+    } catch (emailErr) {
+      // Don't fail create if email fails
+    }
     return res.status(201).json(out);
   } catch (err) {
     if (err.code === 11000) {
@@ -129,6 +140,7 @@ export async function getDetails(req, res) {
       assignedModules: orderedModules.map((m) => ({
         id: m._id.toString(),
         name: m.name,
+        module_code: m.module_code ?? '',
         description: m.description,
       })),
       planAssignments: planAssignmentsWithDetails,
@@ -138,6 +150,8 @@ export async function getDetails(req, res) {
   }
 }
 
+const ALLOWED_UPDATE_FIELDS = ['fullName', 'email', 'mobile', 'type', 'username'];
+
 export async function update(req, res) {
   try {
     const { id } = req.params;
@@ -145,14 +159,25 @@ export async function update(req, res) {
     if (!mongoose.isValidObjectId(id)) {
       return res.status(400).json({ success: false, message: 'Invalid ID' });
     }
+    const update = {};
+    for (const key of ALLOWED_UPDATE_FIELDS) {
+      if (body[key] !== undefined) {
+        if (key === 'email') update[key] = String(body[key]).trim().toLowerCase();
+        else if (typeof body[key] === 'string') update[key] = body[key].trim();
+        else update[key] = body[key];
+      }
+    }
     const doc = await Subscription.findByIdAndUpdate(
       id,
-      { $set: body },
+      { $set: update },
       { new: true, runValidators: true }
     ).lean();
     if (!doc) return res.status(404).json({ success: false, message: 'Subscription not found' });
     return res.json(toResponse(doc, { exclude: ['password'] }));
   } catch (err) {
+    if (err.code === 11000) {
+      return res.status(400).json({ success: false, message: 'Username already exists' });
+    }
     return res.status(500).json({ success: false, message: err.message });
   }
 }
@@ -166,6 +191,47 @@ export async function remove(req, res) {
     const doc = await Subscription.findByIdAndDelete(id);
     if (!doc) return res.status(404).json({ success: false, message: 'Subscription not found' });
     return res.status(204).send();
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+}
+
+export async function resetPassword(req, res) {
+  try {
+    const { id } = req.params;
+    const { sendToEmail } = req.body || {};
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid ID' });
+    }
+    const password = generatePassword();
+    const doc = await Subscription.findByIdAndUpdate(
+      id,
+      { $set: { password } },
+      { new: true }
+    ).lean();
+    if (!doc) return res.status(404).json({ success: false, message: 'Subscription not found' });
+
+    const toEmail = typeof sendToEmail === 'string' && sendToEmail.trim() ? sendToEmail.trim() : doc.email;
+    if (toEmail) {
+      try {
+        await sendAdminEmail(
+          toEmail,
+          'LMS – Password reset',
+          `Hello ${doc.fullName},\n\nYour password has been reset.\nUsername: ${doc.username}\nNew password: ${password}\n\nPlease keep your password secure.`,
+          `<p>Hello <strong>${doc.fullName}</strong>,</p><p>Your password has been reset.</p><ul><li><strong>Username:</strong> ${doc.username}</li><li><strong>New password:</strong> ${password}</li></ul><p>Please keep your password secure.</p>`
+        );
+      } catch (emailErr) {
+        // Still return success; email failure is non-fatal
+      }
+    }
+
+    return res.json({
+      id: doc._id.toString(),
+      fullName: doc.fullName,
+      username: doc.username,
+      password,
+      emailSentTo: toEmail || null,
+    });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }

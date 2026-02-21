@@ -13,11 +13,15 @@ export async function list(req, res) {
 
 export async function create(req, res) {
   try {
-    const { name, description } = req.body || {};
+    const { name, module_code, description } = req.body || {};
     if (!name || !description) {
       return res.status(400).json({ success: false, message: 'Missing name or description' });
     }
-    const doc = await Module.create({ name, description });
+    const doc = await Module.create({
+      name,
+      module_code: module_code != null ? String(module_code).trim() : '',
+      description,
+    });
     return res.status(201).json(toResponse(doc));
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
@@ -41,13 +45,17 @@ export async function getById(req, res) {
 export async function update(req, res) {
   try {
     const { id } = req.params;
-    const { name, description } = req.body || {};
+    const { name, module_code, description } = req.body || {};
     if (!mongoose.isValidObjectId(id)) {
       return res.status(400).json({ success: false, message: 'Invalid ID' });
     }
+    const update = {};
+    if (name != null) update.name = name;
+    if (module_code != null) update.module_code = String(module_code).trim();
+    if (description != null) update.description = description;
     const doc = await Module.findByIdAndUpdate(
       id,
-      { $set: { name, description } },
+      { $set: update },
       { new: true, runValidators: true }
     ).lean();
     if (!doc) return res.status(404).json({ success: false, message: 'Module not found' });

@@ -17,6 +17,7 @@ router.post('/:subscriptionId/email-config/test', emailConfigController.sendTest
 
 router.get('/:id', subscriptionController.getById);
 router.patch('/:id', subscriptionController.update);
+router.post('/:id/reset-password', subscriptionController.resetPassword);
 router.delete('/:id', subscriptionController.remove);
 
 export default router;

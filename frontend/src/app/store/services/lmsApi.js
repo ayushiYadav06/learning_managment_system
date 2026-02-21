@@ -28,7 +28,7 @@ const baseQueryWithAuthHandling = async (args, api, extraOptions) => {
 export const lmsApi = createApi({
   reducerPath: 'lmsApi',
   baseQuery: baseQueryWithAuthHandling,
-  tagTypes: ['Subscriptions', 'Modules', 'BillingPlans', 'SubscriptionModules', 'SubscriptionPlanAssignments', 'SubscriptionLogs', 'BillingSubscriptionLogs', 'EmailConfig'],
+  tagTypes: ['Subscriptions', 'Modules', 'BillingPlans', 'SubscriptionModules', 'SubscriptionPlanAssignments', 'SubscriptionLogs', 'BillingSubscriptionLogs', 'EmailConfig', 'AdminEmailConfig'],
   endpoints: (builder) => ({
     getSubscriptions: builder.query({
       query: (type) => (type ? `/api/subscriptions?type=${encodeURIComponent(type)}` : '/api/subscriptions'),
@@ -51,6 +51,14 @@ export const lmsApi = createApi({
     deleteSubscription: builder.mutation({
       query: (id) => ({ url: `/api/subscriptions/${id}`, method: 'DELETE' }),
       invalidatesTags: (_result, _err, id) => [{ type: 'Subscriptions', id }, { type: 'Subscriptions', id: 'LIST' }],
+    }),
+    resetSubscriptionPassword: builder.mutation({
+      query: ({ id, sendToEmail } = {}) => ({
+        url: `/api/subscriptions/${id}/reset-password`,
+        method: 'POST',
+        body: sendToEmail != null ? { sendToEmail } : {},
+      }),
+      invalidatesTags: (_result, _err, { id }) => [{ type: 'Subscriptions', id }, { type: 'Subscriptions', id: 'LIST' }],
     }),
     getSubscriptionDetails: builder.query({
       query: (id) => `/api/subscriptions/${id}/details`,
@@ -113,6 +121,18 @@ export const lmsApi = createApi({
         method: 'POST',
         body: { to },
       }),
+    }),
+    getAdminEmailConfig: builder.query({
+      query: () => '/api/admin/email-config',
+      providesTags: [{ type: 'AdminEmailConfig', id: 'CONFIG' }],
+    }),
+    updateAdminEmailConfig: builder.mutation({
+      query: (body) => ({
+        url: '/api/admin/email-config',
+        method: 'PUT',
+        body,
+      }),
+      invalidatesTags: [{ type: 'AdminEmailConfig', id: 'CONFIG' }],
     }),
     getAllSubscriptionLogs: builder.query({
       query: () => '/api/subscription-logs',
@@ -181,6 +201,7 @@ export const {
   useCreateSubscriptionMutation,
   useUpdateSubscriptionMutation,
   useDeleteSubscriptionMutation,
+  useResetSubscriptionPasswordMutation,
   useGetSubscriptionDetailsQuery,
   useGetAssignedModulesQuery,
   useAssignModulesMutation,
@@ -189,6 +210,8 @@ export const {
   useGetEmailConfigQuery,
   useSaveEmailConfigMutation,
   useSendTestEmailMutation,
+  useGetAdminEmailConfigQuery,
+  useUpdateAdminEmailConfigMutation,
   useGetAllSubscriptionLogsQuery,
   useGetModulesQuery,
   useCreateModuleMutation,

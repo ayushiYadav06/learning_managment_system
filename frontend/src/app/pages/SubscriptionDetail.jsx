@@ -1,12 +1,15 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
-import { useGetSubscriptionDetailsQuery } from '../store/services/lmsApi';
+import { useGetSubscriptionDetailsQuery, useGetAdminEmailConfigQuery, useUpdateSubscriptionMutation, useResetSubscriptionPasswordMutation } from '../store/services/lmsApi';
+import { EditSubscriptionDialog } from '../components/EditSubscriptionDialog';
+import { ResetPasswordDialog } from '../components/ResetPasswordDialog';
+import { SubscriptionCredentialsModal } from '../components/SubscriptionCredentialsModal';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '../config/constants';
-import { ArrowLeft, User, Mail, Phone, Key, Package, DollarSign, Copy } from 'lucide-react';
+import { ArrowLeft, User, Mail, Phone, Key, Package, DollarSign, Copy, Pencil, KeyRound } from 'lucide-react';
 
 function formatDateTime(dateStr) {
   if (!dateStr) return '—';
@@ -53,7 +56,44 @@ function DetailRow({ icon: Icon, label, value, copyable }) {
 export function SubscriptionDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isResetPasswordDialogOpen, setIsResetPasswordDialogOpen] = useState(false);
+  const [credentialsModal, setCredentialsModal] = useState(null);
   const { data, isLoading, error } = useGetSubscriptionDetailsQuery(id, { skip: !id });
+  const { data: adminEmailConfig } = useGetAdminEmailConfigQuery();
+  const [updateSubscription] = useUpdateSubscriptionMutation();
+  const [resetPassword, { isLoading: isResettingPassword }] = useResetSubscriptionPasswordMutation();
+
+  const handleUpdateSubscription = async ({ id: subId, data: updateData }) => {
+    try {
+      await updateSubscription({ id: subId, data: updateData }).unwrap();
+      setIsEditDialogOpen(false);
+      toast.success('Subscription updated successfully');
+    } catch (e) {
+      toast.error(getApiErrorMessage(e, 'Failed to update subscription'));
+    }
+  };
+
+  const handleConfirmResetPassword = async (sendToEmail) => {
+    if (!id) return;
+    try {
+      const result = await resetPassword({ id, sendToEmail }).unwrap();
+      setIsResetPasswordDialogOpen(false);
+      setCredentialsModal({
+        title: 'Password reset',
+        description: result.emailSentTo
+          ? `New password has been sent to ${result.emailSentTo}. You can also copy it below.`
+          : 'New password generated. Copy it below; it will not be shown again here.',
+        fullName: result.fullName,
+        username: result.username,
+        password: result.password ?? '',
+      });
+      if (result.emailSentTo) toast.success(`Password reset and email sent to ${result.emailSentTo}`);
+      else toast.success('Password reset successfully');
+    } catch (e) {
+      toast.error(getApiErrorMessage(e, 'Failed to reset password'));
+    }
+  };
 
   useEffect(() => {
     if (error) toast.error(getApiErrorMessage(error, 'Failed to load subscriber details'));
@@ -101,10 +141,62 @@ export function SubscriptionDetail() {
         Back to Subscriptions
       </Button>
 
-      <div>
-        <h2 className="text-2xl font-bold text-[#0f172a] tracking-tight">{subscription.fullName}</h2>
-        <p className="text-slate-500 mt-1">Complete user details, modules enrolled & billing enrolled</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-[#0f172a] tracking-tight">{subscription.fullName}</h2>
+          <p className="text-slate-500 mt-1">Complete user details, modules enrolled & billing enrolled</p>
+        </div>
+        <Button
+          variant="outline"
+          className="h-10 px-4 rounded-lg border-slate-200 text-[#0f172a] hover:bg-slate-50 shrink-0"
+          onClick={() => setIsEditDialogOpen(true)}
+        >
+          <Pencil className="w-4 h-4 mr-2" />
+          Edit subscription
+        </Button>
+        <Button
+          variant="outline"
+          className="h-10 px-4 rounded-lg border-slate-200 text-[#0f172a] hover:bg-slate-50 shrink-0"
+          onClick={() => {
+            if (!adminEmailConfig?.configured) {
+              toast.error('Please configure email to send mail. Go to Configure Email in the sidebar.');
+              return;
+            }
+            setIsResetPasswordDialogOpen(true);
+          }}
+          disabled={isResettingPassword}
+        >
+          <KeyRound className="w-4 h-4 mr-2" />
+          Reset password
+        </Button>
       </div>
+
+      <EditSubscriptionDialog
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        subscription={subscription}
+        onSubmit={handleUpdateSubscription}
+      />
+
+      <ResetPasswordDialog
+        open={isResetPasswordDialogOpen}
+        onOpenChange={setIsResetPasswordDialogOpen}
+        subscriptionName={subscription.fullName}
+        subscriptionEmail={subscription.email}
+        onConfirm={handleConfirmResetPassword}
+      />
+
+      {credentialsModal && (
+        <SubscriptionCredentialsModal
+          open={!!credentialsModal}
+          onOpenChange={(open) => { if (!open) setCredentialsModal(null); }}
+          title={credentialsModal.title}
+          description={credentialsModal.description}
+          fullName={credentialsModal.fullName}
+          username={credentialsModal.username}
+          password={credentialsModal.password}
+        />
+      )}
 
       <Card className="border-slate-200 shadow-sm">
         <CardHeader className="border-b border-slate-100">
@@ -183,7 +275,12 @@ export function SubscriptionDetail() {
                   key={mod.id}
                   className="p-4 rounded-lg border border-slate-200 bg-slate-50/50"
                 >
-                  <p className="font-medium text-[#0f172a]">{mod.name}</p>
+                  <p className="font-medium text-[#0f172a]">
+                    {mod.name}
+                    {mod.module_code && (
+                      <span className="ml-2 font-mono text-sm font-normal text-slate-500">({mod.module_code})</span>
+                    )}
+                  </p>
                   {mod.description && (
                     <p className="text-sm text-slate-500 mt-1">{mod.description}</p>
                   )}

@@ -7,6 +7,7 @@ import billingPlanRoutes from './billingPlans.js';
 import * as subscriptionLogController from '../controllers/subscriptionLogController.js';
 import * as billingSubscriptionLogController from '../controllers/billingSubscriptionLogController.js';
 import * as subscriptionPlanAssignmentController from '../controllers/subscriptionPlanAssignmentController.js';
+import * as adminEmailConfigController from '../controllers/adminEmailConfigController.js';
 
 const router = Router();
 
@@ -16,6 +17,9 @@ router.get('/billing-subscription-logs', authMiddleware, billingSubscriptionLogC
 
 router.get('/subscriptions/:subscriptionId/plan-assignments', authMiddleware, subscriptionPlanAssignmentController.getPlanAssignments);
 router.put('/subscriptions/:subscriptionId/plan-assignments', authMiddleware, subscriptionPlanAssignmentController.setPlanAssignments);
+
+router.get('/admin/email-config', authMiddleware, adminEmailConfigController.getConfig);
+router.put('/admin/email-config', authMiddleware, adminEmailConfigController.updateConfig);
 
 router.use('/subscriptions', authMiddleware, subscriptionRoutes);
 router.use('/modules', authMiddleware, moduleRoutes);

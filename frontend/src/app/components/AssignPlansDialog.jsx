@@ -25,7 +25,6 @@ import {
 } from '../store/services/lmsApi';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '../config/constants';
-import { ScrollArea } from './ui/scroll-area';
 import { Key } from 'lucide-react';
 
 const DURATION_OPTIONS = [
@@ -35,6 +34,34 @@ const DURATION_OPTIONS = [
   { value: '2-year', label: '2 Year' },
   { value: '4-year', label: '4 Year' },
 ];
+
+function addDuration(startDate, duration) {
+  const d = new Date(startDate);
+  switch (duration) {
+    case '4-month':
+      d.setMonth(d.getMonth() + 4);
+      return d;
+    case '8-month':
+      d.setMonth(d.getMonth() + 8);
+      return d;
+    case '12-month':
+      d.setFullYear(d.getFullYear() + 1);
+      return d;
+    case '2-year':
+      d.setFullYear(d.getFullYear() + 2);
+      return d;
+    case '4-year':
+      d.setFullYear(d.getFullYear() + 4);
+      return d;
+    default:
+      d.setMonth(d.getMonth() + 1);
+      return d;
+  }
+}
+
+function formatDate(date) {
+  return date ? new Date(date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
+}
 
 export function AssignPlansDialog({ open, onOpenChange, subscriptionId }) {
   const [selected, setSelected] = useState({});
@@ -53,6 +80,15 @@ export function AssignPlansDialog({ open, onOpenChange, subscriptionId }) {
   );
 
   const isUpgrade = existingAssignments.length > 0;
+  const currentPlanId = isUpgrade ? existingAssignments[0]?.planId : null;
+  const currentPlan = useMemo(
+    () => (currentPlanId ? plans.find((p) => p.id === currentPlanId) : null),
+    [plans, currentPlanId]
+  );
+  const selectablePlans = useMemo(() => {
+    if (!isUpgrade || !currentPlanId) return plans;
+    return plans.filter((p) => p.id !== currentPlanId);
+  }, [plans, isUpgrade, currentPlanId]);
 
   useEffect(() => {
     if (!open) {
@@ -61,16 +97,12 @@ export function AssignPlansDialog({ open, onOpenChange, subscriptionId }) {
     }
     if (!openedRef.current) {
       openedRef.current = true;
-      if (existingAssignments.length > 0) {
-        const first = existingAssignments[0];
-        setSelected({ [first.planId]: first.duration ?? '12-month' });
-      } else {
-        setSelected({});
-      }
+      setSelected({});
     }
-  }, [open, subscriptionId, existingAssignments]);
+  }, [open, subscriptionId]);
 
   const handleTogglePlan = (planId, checked) => {
+    if (planId === currentPlanId) return;
     if (checked === true) {
       setSelected({ [planId]: '12-month' });
     } else {
@@ -106,31 +138,68 @@ export function AssignPlansDialog({ open, onOpenChange, subscriptionId }) {
     }
   };
 
+  const selectedEntry = Object.entries(selected)[0];
+  const planStartDate = selectedEntry ? new Date() : null;
+  const planEndDate = selectedEntry ? addDuration(planStartDate, selectedEntry[1]) : null;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
+        <DialogHeader className="px-6 pt-6 pb-2 shrink-0">
           <DialogTitle>{isUpgrade ? 'Upgrade Plan' : 'Assign Plan'}</DialogTitle>
           <DialogDescription>
             {isUpgrade
-              ? `Select a new plan and duration for ${subscriptionName}. The upgraded plan is active from today and runs until the duration end date.`
+              ? `Select a different plan and duration for ${subscriptionName}. The current plan cannot be selected again. The upgraded plan is active from today.`
               : `Select one plan and duration for ${subscriptionName}. Access starts today and ends after the chosen duration.`}
           </DialogDescription>
         </DialogHeader>
-        <div className="flex items-center gap-2 px-1 py-2 rounded-lg bg-slate-100 border border-slate-200 text-sm text-slate-600">
-          <Key className="w-4 h-4 shrink-0 text-slate-500" />
-          <span>API key: </span>
-          <span className="font-mono text-slate-500 select-none">••••••••••••••••••••••••</span>
-          <span className="text-slate-400 text-xs">(hidden)</span>
-        </div>
-        <ScrollArea className="max-h-[400px] pr-4">
-          <div className="space-y-4 py-4">
-            {plans.length === 0 ? (
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-6">
+          {isUpgrade && currentPlanId && (
+            <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-3">
+              Current plan is excluded. Choose a different plan to upgrade.
+            </p>
+          )}
+          <div className="flex items-center gap-2 px-1 py-2 rounded-lg bg-slate-100 border border-slate-200 text-sm text-slate-600 mb-3">
+            <Key className="w-4 h-4 shrink-0 text-slate-500" />
+            <span>API key: </span>
+            <span className="font-mono text-slate-500 select-none">••••••••••••••••••••••••</span>
+            <span className="text-slate-400 text-xs">(hidden)</span>
+          </div>
+          {selectedEntry && (
+            <div className="grid grid-cols-2 gap-3 rounded-lg border border-slate-200 bg-slate-50/50 p-3 text-sm mb-4">
+              <div>
+                <span className="text-slate-500 font-medium">Plan start date</span>
+                <p className="text-[#0f172a] font-medium mt-0.5">{formatDate(planStartDate)}</p>
+              </div>
+              <div>
+                <span className="text-slate-500 font-medium">Plan end date</span>
+                <p className="text-[#0f172a] font-medium mt-0.5">{formatDate(planEndDate)}</p>
+              </div>
+            </div>
+          )}
+          <div className="space-y-4 pb-4">
+            {currentPlan && (
+              <div className="flex flex-wrap items-center gap-3 p-3 border rounded-lg bg-slate-50 border-slate-200">
+                <Checkbox id={`plan-current-${currentPlan.id}`} checked disabled />
+                <div className="flex-1 min-w-[140px]">
+                  <Label htmlFor={`plan-current-${currentPlan.id}`} className="font-medium text-slate-600 cursor-default">
+                    {currentPlan.name}
+                  </Label>
+                  <p className="text-sm text-slate-500 mt-0.5">
+                    Installation: ₹{(currentPlan.cost ?? 0).toLocaleString()}
+                  </p>
+                </div>
+                <span className="text-xs font-medium text-amber-700 bg-amber-100 px-2 py-1 rounded">Current plan</span>
+              </div>
+            )}
+            {selectablePlans.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
-                No plans available. Please create plans first.
+                {isUpgrade && currentPlanId
+                  ? 'No other plans available to upgrade to.'
+                  : 'No plans available. Please create plans first.'}
               </div>
             ) : (
-              plans.map((plan) => (
+              selectablePlans.map((plan) => (
                 <div
                   key={plan.id}
                   className="flex flex-wrap items-center gap-3 p-3 border rounded-lg hover:bg-gray-50"
@@ -172,12 +241,12 @@ export function AssignPlansDialog({ open, onOpenChange, subscriptionId }) {
               ))
             )}
           </div>
-        </ScrollArea>
-        <DialogFooter>
+        </div>
+        <DialogFooter className="px-6 py-4 border-t border-slate-200 bg-slate-50/50 shrink-0">
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={plans.length === 0 || Object.keys(selected).length === 0 || isLoading}>
+          <Button onClick={handleSubmit} disabled={selectablePlans.length === 0 || Object.keys(selected).length === 0 || isLoading}>
             {isUpgrade ? 'Upgrade Plan' : 'Assign Plan'} ({Object.keys(selected).length ? 1 : 0})
           </Button>
         </DialogFooter>

@@ -4,13 +4,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { Plus, LucideTrash2 as Trash2, ArrowUpCircle, Link2, Eye, EyeOff, Search, Mail, Users } from 'lucide-react';
+import { Plus, LucideTrash2 as Trash2, ArrowUpCircle, Link2, Eye, EyeOff, Search, Mail, Users, Pencil, KeyRound, MoreVertical } from 'lucide-react';
 import {
   useGetSubscriptionsQuery,
+  useGetAdminEmailConfigQuery,
   useCreateSubscriptionMutation,
+  useUpdateSubscriptionMutation,
   useDeleteSubscriptionMutation,
+  useResetSubscriptionPasswordMutation,
 } from '../store/services/lmsApi';
 import { NewSubscriptionDialog } from '../components/NewSubscriptionDialog';
+import { EditSubscriptionDialog } from '../components/EditSubscriptionDialog';
+import { SubscriptionCredentialsModal } from '../components/SubscriptionCredentialsModal';
+import { ResetPasswordDialog } from '../components/ResetPasswordDialog';
 import { AssignPlansDialog } from '../components/AssignPlansDialog';
 import { ConfigureEmailDialog } from '../components/ConfigureEmailDialog';
 import { toast } from 'sonner';
@@ -30,16 +36,33 @@ const SUBSCRIPTION_TYPES = ['Individual', 'Hybrid', 'Institute/School'];
 export function Subscriptions() {
   const [isNewDialogOpen, setIsNewDialogOpen] = useState(false);
   const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
+  const [subscriptionToEdit, setSubscriptionToEdit] = useState(null);
+  const [subscriptionToReset, setSubscriptionToReset] = useState(null);
+  const [credentialsModal, setCredentialsModal] = useState(null);
   const [selectedSubscription, setSelectedSubscription] = useState(null);
   const [selectedSubscriptionForEmail, setSelectedSubscriptionForEmail] = useState(null);
   const [activeTab, setActiveTab] = useState('Individual');
   const [visiblePasswordId, setVisiblePasswordId] = useState(null);
+  const [openMenuId, setOpenMenuId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const menuRef = React.useRef(null);
+
+  useEffect(() => {
+    if (openMenuId == null) return;
+    const handleClickOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setOpenMenuId(null);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [openMenuId]);
 
   const { data: subscriptions = [], isLoading, error } = useGetSubscriptionsQuery();
+  const { data: adminEmailConfig } = useGetAdminEmailConfigQuery();
   const [createSubscription, { isLoading: isCreating }] = useCreateSubscriptionMutation();
+  const [updateSubscription, { isLoading: isUpdating }] = useUpdateSubscriptionMutation();
   const [deleteSubscription, { isLoading: isDeleting }] = useDeleteSubscriptionMutation();
+  const [resetPassword, { isLoading: isResettingPassword }] = useResetSubscriptionPasswordMutation();
 
   const filteredSubscriptions = useMemo(() => {
     const byTab = subscriptions.filter((sub) => sub.type === activeTab);
@@ -62,13 +85,44 @@ export function Subscriptions() {
     try {
       const created = await createSubscription(data).unwrap();
       setIsNewDialogOpen(false);
-      toast.success(`Subscription created for ${data.fullName}`, {
-        description: created.password
-          ? `Auto-generated password: ${created.password}. You can copy it from the table or subscriber view.`
-          : undefined,
+      setCredentialsModal({
+        title: 'Subscription created',
+        description: 'Copy the details below. The password is shown only once.',
+        fullName: created.fullName,
+        username: created.username,
+        password: created.password ?? '',
       });
     } catch (e) {
       toast.error(getApiErrorMessage(e, 'Failed to create subscription'));
+    }
+  };
+
+  const handleOpenResetPassword = (sub) => {
+    if (!adminEmailConfig?.configured) {
+      toast.error('Please configure email to send mail. Go to Configure Email in the sidebar.');
+      return;
+    }
+    setSubscriptionToReset(sub);
+  };
+
+  const handleConfirmResetPassword = async (sendToEmail) => {
+    if (!subscriptionToReset) return;
+    try {
+      const result = await resetPassword({ id: subscriptionToReset.id, sendToEmail }).unwrap();
+      setSubscriptionToReset(null);
+      setCredentialsModal({
+        title: 'Password reset',
+        description: result.emailSentTo
+          ? `New password has been sent to ${result.emailSentTo}. You can also copy it below.`
+          : 'New password generated. Copy it below; it will not be shown again here.',
+        fullName: result.fullName,
+        username: result.username,
+        password: result.password ?? '',
+      });
+      if (result.emailSentTo) toast.success(`Password reset and email sent to ${result.emailSentTo}`);
+      else toast.success('Password reset successfully');
+    } catch (e) {
+      toast.error(getApiErrorMessage(e, 'Failed to reset password'));
     }
   };
 
@@ -79,6 +133,20 @@ export function Subscriptions() {
       toast.success('Subscription deleted');
     } catch (e) {
       toast.error(getApiErrorMessage(e, 'Failed to delete subscription'));
+    }
+  };
+
+  const handleEditSubscription = (sub) => {
+    setSubscriptionToEdit(sub);
+  };
+
+  const handleUpdateSubscription = async ({ id, data }) => {
+    try {
+      await updateSubscription({ id, data }).unwrap();
+      setSubscriptionToEdit(null);
+      toast.success('Subscription updated successfully');
+    } catch (e) {
+      toast.error(getApiErrorMessage(e, 'Failed to update subscription'));
     }
   };
 
@@ -217,43 +285,66 @@ export function Subscriptions() {
                             </TableCell>
                             <TableCell className="text-slate-600">{new Date(sub.createdAt).toLocaleDateString()}</TableCell>
                             <TableCell className="text-right">
-                              <div className="flex items-center justify-end gap-1.5">
+                              <div className="relative flex justify-end" ref={openMenuId === sub.id ? menuRef : null}>
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  className="h-8 px-3 rounded-md border-slate-200 text-[#0f172a] hover:bg-slate-50 text-xs font-medium"
-                                  onClick={() => handleAssignPlans(sub.id)}
+                                  className="h-8 w-8 p-0 rounded-md border-slate-200 text-slate-600 hover:bg-slate-50"
+                                  onClick={() => setOpenMenuId((prev) => (prev === sub.id ? null : sub.id))}
+                                  aria-label="Actions"
+                                  aria-expanded={openMenuId === sub.id}
                                 >
-                                  {sub.hasPlanAssignment ? (
-                                    <>
-                                      <ArrowUpCircle className="w-3.5 h-3.5 mr-1.5 shrink-0" />
-                                      Upgrade
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Link2 className="w-3.5 h-3.5 mr-1.5 shrink-0" />
-                                      Assign
-                                    </>
-                                  )}
+                                  <MoreVertical className="w-4 h-4" />
                                 </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-8 px-3 rounded-md border-slate-200 text-[#0f172a] hover:bg-slate-50 text-xs font-medium"
-                                  onClick={() => handleConfigureEmail(sub.id)}
-                                >
-                                  <Mail className="w-3.5 h-3.5 mr-1.5 shrink-0" />
-                                  Configure Email
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  className="h-8 w-8 p-0 rounded-md"
-                                  onClick={() => handleDeleteSubscription(sub.id, sub.fullName)}
-                                  disabled={isDeleting}
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </Button>
+                                {openMenuId === sub.id && (
+                                  <div className="absolute right-0 top-full z-50 mt-1 min-w-[180px] rounded-md border border-slate-200 bg-white py-1 shadow-lg">
+                                    <button
+                                      type="button"
+                                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100"
+                                      onClick={() => { handleEditSubscription(sub); setOpenMenuId(null); }}
+                                    >
+                                      <Pencil className="w-4 h-4 shrink-0" />
+                                      Edit
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100"
+                                      onClick={() => { handleAssignPlans(sub.id); setOpenMenuId(null); }}
+                                    >
+                                      {sub.hasPlanAssignment ? (
+                                        <><ArrowUpCircle className="w-4 h-4 shrink-0" /> Upgrade Plan</>
+                                      ) : (
+                                        <><Link2 className="w-4 h-4 shrink-0" /> Assign Plan</>
+                                      )}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100"
+                                      onClick={() => { handleConfigureEmail(sub.id); setOpenMenuId(null); }}
+                                    >
+                                      <Mail className="w-4 h-4 shrink-0" />
+                                      Configure Email
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100"
+                                      onClick={() => { handleOpenResetPassword(sub); setOpenMenuId(null); }}
+                                      disabled={isResettingPassword}
+                                    >
+                                      <KeyRound className="w-4 h-4 shrink-0" />
+                                      Reset password
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50"
+                                      onClick={() => { handleDeleteSubscription(sub.id, sub.fullName); setOpenMenuId(null); }}
+                                      disabled={isDeleting}
+                                    >
+                                      <Trash2 className="w-4 h-4 shrink-0" />
+                                      Delete
+                                    </button>
+                                  </div>
+                                )}
                               </div>
                             </TableCell>
                           </TableRow>
@@ -281,6 +372,23 @@ export function Subscriptions() {
         onSubmit={handleCreateSubscription}
       />
 
+      <EditSubscriptionDialog
+        open={!!subscriptionToEdit}
+        onOpenChange={(open) => { if (!open) setSubscriptionToEdit(null); }}
+        subscription={subscriptionToEdit}
+        onSubmit={handleUpdateSubscription}
+      />
+
+      {subscriptionToReset && (
+        <ResetPasswordDialog
+          open={!!subscriptionToReset}
+          onOpenChange={(open) => { if (!open) setSubscriptionToReset(null); }}
+          subscriptionName={subscriptionToReset.fullName}
+          subscriptionEmail={subscriptionToReset.email}
+          onConfirm={handleConfirmResetPassword}
+        />
+      )}
+
       {selectedSubscription && (
         <AssignPlansDialog
           open={isAssignDialogOpen}
@@ -294,6 +402,18 @@ export function Subscriptions() {
         onOpenChange={(open) => { if (!open) setSelectedSubscriptionForEmail(null); }}
         subscriptionId={selectedSubscriptionForEmail}
       />
+
+      {credentialsModal && (
+        <SubscriptionCredentialsModal
+          open={!!credentialsModal}
+          onOpenChange={(open) => { if (!open) setCredentialsModal(null); }}
+          title={credentialsModal.title}
+          description={credentialsModal.description}
+          fullName={credentialsModal.fullName}
+          username={credentialsModal.username}
+          password={credentialsModal.password}
+        />
+      )}
     </div>
   );
 }

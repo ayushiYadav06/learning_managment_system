@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router';
-import { GraduationCap, Users, Package, DollarSign, History, LogOut, ChevronDown, ChevronRight, Boxes } from 'lucide-react';
+import { GraduationCap, Users, Package, DollarSign, History, LogOut, ChevronDown, ChevronRight, Boxes, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAppDispatch } from '../hooks';
 import { logout } from '../store/slices/authSlice';
@@ -27,6 +27,7 @@ export function Dashboard() {
     { to: '/dashboard/subscriptions', icon: Users, label: 'Subscriptions' },
     { to: '/dashboard/subscription-log', icon: History, label: 'Subscriptions Logs' },
     { to: '/dashboard/plan-subscription-logs', icon: History, label: 'Plan Subscription Logs' },
+    { to: '/dashboard/configure-email', icon: Mail, label: 'Configure Email' },
   ];
 
   const masterSubItems = [

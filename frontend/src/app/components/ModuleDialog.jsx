@@ -8,18 +8,21 @@ import { Textarea } from './ui/textarea';
 export function ModuleDialog({ open, onOpenChange, onSubmit, initialData }) {
   const [formData, setFormData] = useState({
     name: '',
+    module_code: '',
     description: '',
   });
 
   useEffect(() => {
     if (initialData) {
       setFormData({
-        name: initialData.name,
-        description: initialData.description,
+        name: initialData.name ?? '',
+        module_code: initialData.module_code ?? '',
+        description: initialData.description ?? '',
       });
     } else {
       setFormData({
         name: '',
+        module_code: '',
         description: '',
       });
     }
@@ -28,7 +31,7 @@ export function ModuleDialog({ open, onOpenChange, onSubmit, initialData }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     onSubmit(formData);
-    setFormData({ name: '', description: '' });
+    setFormData({ name: '', module_code: '', description: '' });
   };
 
   return (
@@ -50,6 +53,15 @@ export function ModuleDialog({ open, onOpenChange, onSubmit, initialData }) {
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="e.g., Chatbot, Exam, Certificate"
                 required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="module_code">Module Code</Label>
+              <Input
+                id="module_code"
+                value={formData.module_code}
+                onChange={(e) => setFormData({ ...formData, module_code: e.target.value })}
+                placeholder="e.g., CHAT, EXAM, CERT"
               />
             </div>
             <div className="space-y-2">

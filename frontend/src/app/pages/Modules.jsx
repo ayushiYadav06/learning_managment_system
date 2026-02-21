@@ -33,7 +33,11 @@ export function Modules() {
   const filteredModules = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return modules;
-    return modules.filter((m) => (m.name || '').toLowerCase().includes(q));
+    return modules.filter(
+      (m) =>
+        (m.name || '').toLowerCase().includes(q) ||
+        (m.module_code || '').toLowerCase().includes(q)
+    );
   }, [modules, searchQuery]);
 
   const totalPages = Math.max(1, Math.ceil(filteredModules.length / PAGE_SIZE));
@@ -156,6 +160,7 @@ export function Modules() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Module Name</TableHead>
+                    <TableHead>Module Code</TableHead>
                     <TableHead>Description</TableHead>
                     <TableHead>Created Date</TableHead>
                     <TableHead className="text-right w-[1%] whitespace-nowrap">Actions</TableHead>
@@ -165,6 +170,7 @@ export function Modules() {
                   {paginatedModules.map((module) => (
                   <TableRow key={module.id}>
                     <TableCell className="font-medium text-[#0f172a]">{module.name}</TableCell>
+                    <TableCell className="font-mono text-sm text-slate-600">{module.module_code || '—'}</TableCell>
                     <TableCell className="max-w-[280px]">{module.description}</TableCell>
                     <TableCell className="text-slate-600">{new Date(module.createdAt).toLocaleDateString()}</TableCell>
                     <TableCell className="text-right">

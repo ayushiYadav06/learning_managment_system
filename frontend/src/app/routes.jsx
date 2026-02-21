@@ -7,6 +7,7 @@ import { Modules } from './pages/Modules';
 import { Billing } from './pages/Billing';
 import { SubscriptionLogs } from './pages/SubscriptionLogs';
 import { BillingSubscriptionLogs } from './pages/BillingSubscriptionLogs';
+import { ConfigureEmail } from './pages/ConfigureEmail';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
 export const router = createBrowserRouter([
@@ -49,6 +50,10 @@ export const router = createBrowserRouter([
       {
         path: 'plan-subscription-logs',
         element: <BillingSubscriptionLogs />,
+      },
+      {
+        path: 'configure-email',
+        element: <ConfigureEmail />,
       },
     ],
   },
